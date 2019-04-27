@@ -4,6 +4,7 @@
   "description": "Static website for myself",
   "main": "server.js",
   "scripts": {
+    "deploy": "gh-pages -d dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -14,6 +15,7 @@
   "author": "Jordan Liebling",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.4"
+    "express": "^4.16.4",
+    "gh-pages": "^2.0.1"
   }
 }
