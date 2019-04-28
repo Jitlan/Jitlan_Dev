@@ -7,14 +7,27 @@
     background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
 }
 
+
 .icon-white {
     color:antiquewhite;
     margin-top: 5px;
     margin-right: 2px;
+}
+.icon-white:hover {
+    color:#c9bdae;
 }
 
 .text-white {
     color:antiquewhite;
     font-size:16px;
     margin-right: 2px;
+}
+
+.link-text-white {
+    color:antiquewhite;
+    font-size:18px;
+    margin-right: 2px;   
+}
+.link-text-white:hover {
+    color:#c9bdae;
 }
