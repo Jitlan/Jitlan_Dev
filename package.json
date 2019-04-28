@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Static website for myself",
   "main": "server.js",
+  "homepage": "https://jitlan.dev  ",
   "scripts": {
-    "deploy": "gh-pages -d dist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "gh-pages -d dist"
   },
   "repository": {
     "type": "git",
