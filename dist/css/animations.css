@@ -1,0 +1,219 @@
+/* ===== Holographic Shimmer ===== */
+.holo-overlay {
+  background: linear-gradient(
+    135deg,
+    transparent 18%,
+    rgba(var(--accent-primary-rgb), 0.04) 24%,
+    rgba(100, 200, 255, 0.05) 30%,
+    transparent 36%,
+    transparent 48%,
+    rgba(255, 100, 200, 0.03) 54%,
+    rgba(var(--accent-primary-rgb), 0.04) 60%,
+    transparent 66%,
+    transparent 78%,
+    rgba(100, 200, 255, 0.03) 84%,
+    transparent 90%
+  );
+  background-size: 250% 250%;
+  animation: holo-shimmer 6s ease-in-out infinite;
+}
+
+@keyframes holo-shimmer {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* ===== Card Entrance ===== */
+.license-card {
+  animation: card-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+    filter: brightness(1.5) saturate(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: brightness(1) saturate(1);
+  }
+}
+
+/* ===== Theme Transition ===== */
+.license-card.theme-transition {
+  animation: theme-flash 0.45s ease-in-out !important;
+}
+
+@keyframes theme-flash {
+  0%   { filter: brightness(1) saturate(1); opacity: 1; }
+  35%  { filter: brightness(1.8) saturate(0.2); opacity: 0.7; }
+  55%  { filter: brightness(1.8) saturate(0.2); opacity: 0.7; }
+  100% { filter: brightness(1) saturate(1); opacity: 1; }
+}
+
+/* ===== Pixel Star Pulse ===== */
+.pixel-star {
+  animation: star-pulse 3s ease-in-out infinite;
+}
+
+@keyframes star-pulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(var(--accent-primary-rgb), 0.4); opacity: 0.8; }
+  50% { text-shadow: 0 0 14px rgba(var(--accent-primary-rgb), 0.8); opacity: 1; }
+}
+
+/* ===== Holo Badge Rotate ===== */
+.holo-inner {
+  display: inline-block;
+  animation: badge-rotate 10s linear infinite;
+}
+
+@keyframes badge-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.holo-ring {
+  animation: ring-pulse 4s ease-in-out infinite;
+}
+
+@keyframes ring-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* ===== Photo Frame Glow ===== */
+.photo-frame {
+  animation: photo-glow 5s ease-in-out infinite;
+}
+
+@keyframes photo-glow {
+  0%, 100% { box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2); }
+  50% { box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 12px rgba(var(--accent-secondary-rgb), 0.1); }
+}
+
+/* ===== Pixel Icon Hover ===== */
+.pixel-icon {
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.pixel-icon:hover {
+  transform: translateY(-2px);
+  opacity: 1;
+}
+
+/* Static hover colors matching each theme */
+.pixel-icon--code:hover {
+  background: rgba(0, 255, 65, 0.15);
+  box-shadow: 0 2px 0 0 rgba(0, 255, 65, 0.4);
+}
+
+.pixel-icon--star:hover {
+  background: rgba(196, 167, 66, 0.15);
+  box-shadow: 0 2px 0 0 rgba(196, 167, 66, 0.4);
+}
+
+.pixel-icon--bolt:hover {
+  background: rgba(255, 45, 85, 0.15);
+  box-shadow: 0 2px 0 0 rgba(255, 45, 85, 0.4);
+}
+
+/* ===== Field label arrow animation ===== */
+.label-icon {
+  display: inline-block;
+  animation: arrow-boop 3s ease-in-out infinite;
+}
+
+.field--name .label-icon { animation-delay: 0s; }
+.field--handle .label-icon { animation-delay: 0.3s; }
+.field--class .label-icon { animation-delay: 0.6s; }
+.field--issued .label-icon { animation-delay: 0.9s; }
+.field--expires .label-icon { animation-delay: 1.2s; }
+.field--stack .label-icon { animation-delay: 1.5s; }
+.field--specialties .label-icon { animation-delay: 1.8s; }
+.field--eyes .label-icon { animation-delay: 2.1s; }
+
+@keyframes arrow-boop {
+  0%, 85%, 100% { transform: translateX(0); }
+  90% { transform: translateX(3px); }
+  95% { transform: translateX(0); }
+}
+
+/* ===== Divider shimmer ===== */
+.pixel-divider {
+  position: relative;
+  overflow: hidden;
+}
+
+.pixel-divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: divider-shine 4s ease-in-out infinite;
+}
+
+@keyframes divider-shine {
+  0% { left: -100%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
+}
+
+/* ===== Progress pip animation ===== */
+@keyframes pip-cycle {
+  0%, 14.28% { background: var(--accent-primary); }
+  14.29%, 100% { background: rgba(var(--neutral-rgb), 0.15); }
+}
+
+/* These get overridden by JS but provide a base look */
+.progress-pip:nth-child(1) { animation: pip-cycle 32.2s step-end infinite 0s; }
+.progress-pip:nth-child(2) { animation: pip-cycle 32.2s step-end infinite 4.6s; }
+.progress-pip:nth-child(3) { animation: pip-cycle 32.2s step-end infinite 9.2s; }
+.progress-pip:nth-child(4) { animation: pip-cycle 32.2s step-end infinite 13.8s; }
+.progress-pip:nth-child(5) { animation: pip-cycle 32.2s step-end infinite 18.4s; }
+.progress-pip:nth-child(6) { animation: pip-cycle 32.2s step-end infinite 23s; }
+.progress-pip:nth-child(7) { animation: pip-cycle 32.2s step-end infinite 27.6s; }
+
+/* ===== Scanline sweep on photo ===== */
+.photo-scanline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(var(--accent-secondary-rgb), 0.08);
+  animation: scanline-sweep 4s linear infinite;
+}
+
+@keyframes scanline-sweep {
+  0% { top: -4px; }
+  100% { top: 100%; }
+}
+
+/* ===== Barcode shimmer ===== */
+.barcode-area {
+  position: relative;
+}
+
+.barcode span {
+  transition: opacity 0.3s ease;
+}
+
+.barcode-area:hover .barcode span {
+  opacity: 0.5;
+}
+
+.barcode-area:hover .barcode span:nth-child(odd) {
+  opacity: 1;
+}

@@ -1,0 +1,144 @@
+/* ===== Pixel Art Buttons ===== */
+.pixel-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.55em;
+  padding: 0.65em 1.2em;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  position: relative;
+  text-transform: uppercase;
+  image-rendering: pixelated;
+  transition: transform 0.08s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn-icon {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.btn-svg {
+  width: 1.4em;
+  height: 1.4em;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* GitHub button */
+.pixel-btn--github {
+  background: #2d2d2d;
+  box-shadow:
+    inset -3px -3px 0 0 #1a1a1a,
+    inset 3px 3px 0 0 #555,
+    0 3px 0 0 #111,
+    3px 0 0 0 #111,
+    0 -3px 0 0 #666,
+    -3px 0 0 0 #666,
+    3px 3px 0 0 #111,
+    -3px -3px 0 0 #666;
+}
+
+.pixel-btn--github:hover {
+  background: #444;
+  transform: translateY(-2px);
+  color: #4a9fff;
+  box-shadow:
+    inset -3px -3px 0 0 #2d2d2d,
+    inset 3px 3px 0 0 #777,
+    0 5px 0 0 #111,
+    3px 0 0 0 #111,
+    0 -3px 0 0 #777,
+    -3px 0 0 0 #777,
+    3px 5px 0 0 #111,
+    -3px -3px 0 0 #777,
+    0 8px 16px rgba(74, 159, 255, 0.15);
+}
+
+.pixel-btn--github:active {
+  background: #222;
+  transform: translateY(2px);
+  color: #fff;
+  box-shadow:
+    inset 3px 3px 0 0 #111,
+    inset -3px -3px 0 0 #555;
+}
+
+/* LinkedIn button */
+.pixel-btn--linkedin {
+  background: #0a66c2;
+  box-shadow:
+    inset -3px -3px 0 0 #084a8c,
+    inset 3px 3px 0 0 #3d9bea,
+    0 3px 0 0 #063a6c,
+    3px 0 0 0 #063a6c,
+    0 -3px 0 0 #4da8ff,
+    -3px 0 0 0 #4da8ff,
+    3px 3px 0 0 #063a6c,
+    -3px -3px 0 0 #4da8ff;
+}
+
+.pixel-btn--linkedin:hover {
+  background: #0d7ee8;
+  transform: translateY(-2px);
+  box-shadow:
+    inset -3px -3px 0 0 #0a66c2,
+    inset 3px 3px 0 0 #5aadff,
+    0 5px 0 0 #063a6c,
+    3px 0 0 0 #063a6c,
+    0 -3px 0 0 #5aadff,
+    -3px 0 0 0 #5aadff,
+    3px 5px 0 0 #063a6c,
+    -3px -3px 0 0 #5aadff,
+    0 8px 16px rgba(10, 102, 194, 0.2);
+}
+
+.pixel-btn--linkedin:active {
+  background: #084a8c;
+  transform: translateY(2px);
+  box-shadow:
+    inset 3px 3px 0 0 #063a6c,
+    inset -3px -3px 0 0 #3d9bea;
+}
+
+/* Hacker News button */
+.pixel-btn--hn {
+  background: #ff6600;
+  box-shadow:
+    inset -3px -3px 0 0 #cc5200,
+    inset 3px 3px 0 0 #ff9944,
+    0 3px 0 0 #993d00,
+    3px 0 0 0 #993d00,
+    0 -3px 0 0 #ffaa55,
+    -3px 0 0 0 #ffaa55,
+    3px 3px 0 0 #993d00,
+    -3px -3px 0 0 #ffaa55;
+}
+
+.pixel-btn--hn:hover {
+  background: #ff8533;
+  transform: translateY(-2px);
+  box-shadow:
+    inset -3px -3px 0 0 #ff6600,
+    inset 3px 3px 0 0 #ffbb66,
+    0 5px 0 0 #993d00,
+    3px 0 0 0 #993d00,
+    0 -3px 0 0 #ffbb66,
+    -3px 0 0 0 #ffbb66,
+    3px 5px 0 0 #993d00,
+    -3px -3px 0 0 #ffbb66,
+    0 8px 16px rgba(255, 102, 0, 0.2);
+}
+
+.pixel-btn--hn:active {
+  background: #cc5200;
+  transform: translateY(2px);
+  box-shadow:
+    inset 3px 3px 0 0 #993d00,
+    inset -3px -3px 0 0 #ff9944;
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jitlan.dev/sitemap.xml

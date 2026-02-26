@@ -1,0 +1,140 @@
+/* ===== Rotate Prompt (hidden by default) ===== */
+.rotate-prompt {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0d1117;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 70%);
+  color: #f0e6d3;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.rotate-prompt .phone-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phone-rotate {
+  animation: phone-tilt 3.5s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes phone-tilt {
+  0%, 10% { transform: rotate(0deg); opacity: 0.5; }
+  25%, 80% { transform: rotate(90deg); opacity: 1; }
+  95%, 100% { transform: rotate(0deg); opacity: 0.5; }
+}
+
+.rotate-text {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(10px, 3vw, 16px);
+  line-height: 2;
+  color: var(--accent-primary);
+}
+
+.rotate-sub {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(10px, 2.5vw, 14px);
+  color: rgba(240, 230, 211, 0.5);
+}
+
+/* ===== Portrait mobile: show rotate prompt ===== */
+@media (orientation: portrait) and (max-width: 900px) {
+  .rotate-prompt {
+    display: flex;
+  }
+  .license-card {
+    display: none !important;
+  }
+}
+
+/* ===== Landscape: tighter spacing ===== */
+@media (orientation: landscape) and (max-height: 700px) {
+  .license-card {
+    width: min(96vw, calc(92dvh * (85.6 / 54)));
+    max-height: 94dvh;
+    border-radius: 8px;
+  }
+
+  .card-header {
+    padding: max(0.8%, 8px) max(3%, 10px);
+  }
+
+  .card-body {
+    padding: max(1.5%, 8px) max(2.5%, 10px);
+    gap: 1.5%;
+  }
+
+  .card-footer {
+    padding: max(1.5%, 8px) max(3%, 10px) max(2%, 8px);
+  }
+
+  .info-fields {
+    gap: 0.15em;
+  }
+
+  .bio-panel {
+    padding: 0.4em 0.5em;
+    gap: 0.2em;
+    overflow: hidden;
+  }
+
+  .bio-text {
+    font-size: 0.68em;
+    line-height: 1.4;
+  }
+
+  .bio-tags {
+    gap: 0.15em;
+    overflow: hidden;
+  }
+
+  .bio-tag {
+    font-size: 0.3em;
+    padding: 0.2em 0.3em;
+  }
+}
+
+/* ===== Small landscape (phones) ===== */
+@media (orientation: landscape) and (max-height: 500px) {
+  .license-card {
+    font-size: clamp(6px, 1.4cqi, 16px);
+  }
+
+  .field--eyes {
+    display: none;
+  }
+
+  .bio-panel {
+    padding: 0.3em 0.4em;
+  }
+
+  .bio-text:last-of-type {
+    display: none;
+  }
+
+  .bio-divider {
+    display: none;
+  }
+}
+
+/* ===== Large desktop ===== */
+@media (min-width: 1800px) {
+  .license-card {
+    max-width: 1400px;
+  }
+}
+
+/* ===== Ultra-wide ===== */
+@media (min-aspect-ratio: 21/9) {
+  .license-card {
+    width: min(70vw, calc(88dvh * (85.6 / 54)));
+  }
+}
