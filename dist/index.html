@@ -342,6 +342,31 @@
   </section>
 
   <!-- Scripts -->
+  <script>
+  // JS fallback for browsers that don't respect CSS orientation media queries (e.g. DuckDuckGo)
+  (function () {
+    var prompt = document.querySelector('.rotate-prompt');
+    var card = document.querySelector('.license-card');
+    if (!prompt || !card) return;
+
+    function checkOrientation() {
+      var isPortrait = window.innerHeight > window.innerWidth * 1.1;
+      if (isPortrait) {
+        prompt.style.display = 'flex';
+        card.style.display = 'none';
+      } else {
+        prompt.style.display = '';
+        card.style.display = '';
+      }
+    }
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', function () {
+      setTimeout(checkOrientation, 150);
+    });
+  })();
+  </script>
   <script src="js/rotating-ads.js"></script>
   <script src="js/theme-switcher.js"></script>
 </body>
