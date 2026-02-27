@@ -45,8 +45,8 @@
   color: rgba(240, 230, 211, 0.5);
 }
 
-/* ===== Portrait: show rotate prompt ===== */
-@media (orientation: portrait) {
+/* ===== Portrait / narrow viewport: show rotate prompt ===== */
+@media (orientation: portrait), (max-aspect-ratio: 6/5) {
   .rotate-prompt {
     display: flex;
   }
