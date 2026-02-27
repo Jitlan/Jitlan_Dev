@@ -45,8 +45,8 @@
   color: rgba(240, 230, 211, 0.5);
 }
 
-/* ===== Portrait mobile: show rotate prompt ===== */
-@media (orientation: portrait) and (max-width: 900px) {
+/* ===== Portrait: show rotate prompt ===== */
+@media (orientation: portrait) {
   .rotate-prompt {
     display: flex;
   }

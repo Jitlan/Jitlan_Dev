@@ -82,6 +82,7 @@ html, body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  position: fixed;
   background: var(--page-bg);
   background: radial-gradient(ellipse at center, var(--page-bg-center) 0%, var(--page-bg) 70%);
   font-family: 'Roboto', sans-serif;
