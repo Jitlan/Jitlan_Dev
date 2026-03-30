@@ -392,6 +392,7 @@ a.ticker__item:hover {
   object-position: top center;
   border: 2px solid var(--border);
   filter: grayscale(15%);
+  transform: scaleX(-1);
 }
 
 /* --- Tech Stack --- */
