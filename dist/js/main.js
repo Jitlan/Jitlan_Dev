@@ -106,7 +106,7 @@
    * ------------------------------------------------------------------ */
   const TICKER_ITEMS = [
     { icon: '//', text: 'Building AI product features with Claude, GPT, Gemini & more' },
-    { icon: '>>', text: 'Championed AI tooling a dev team of 30+' },
+    { icon: '>>', text: 'Championed AI tooling for a dev team of 30+' },
     { icon: '**', text: 'capitol-watch.com now live', link: 'https://capitol-watch.com' },
     { icon: '##', text: 'Enterprise application builder' },
     { icon: '!!', text: 'Exploring MCP servers & agentic workflows' },
