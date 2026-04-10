@@ -157,6 +157,41 @@ a.ticker__item:hover {
   flex-shrink: 0;
 }
 
+/* Ticker "NEW" badge */
+.ticker__new {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #0a0a0c;
+  background: #facc15;
+  padding: 0.05rem 0.3rem;
+  border-radius: 2px;
+  margin-right: 0.25rem;
+}
+
+/* Gradient wave highlight */
+.ticker__wave {
+  background: linear-gradient(
+    90deg,
+    var(--ticker-text) 0%,
+    var(--ticker-text) 35%,
+    #bbf7d0 50%,
+    var(--ticker-text) 65%,
+    var(--ticker-text) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: wave-sweep 3s ease-in-out infinite;
+}
+
+@keyframes wave-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -336,6 +371,11 @@ a.ticker__item:hover {
   padding: 0;
 }
 
+[data-theme="dark"] .theme-toggle {
+  border-color: #555;
+  background: #2a2a30;
+}
+
 .theme-toggle.hidden {
   opacity: 0;
   pointer-events: none;
@@ -417,9 +457,30 @@ a.ticker__item:hover {
   white-space: nowrap;
   padding: 0.2rem 0.5rem;
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   background: var(--card-bg);
   border-radius: 2px;
+  transition: border-color 0.2s, background 0.2s;
 }
+
+/* Category colors */
+.stack__item[data-cat="lang"]      { border-left-color: #3b82f6; }
+.stack__item[data-cat="framework"] { border-left-color: #a855f7; }
+.stack__item[data-cat="db"]        { border-left-color: #22c55e; }
+.stack__item[data-cat="infra"]     { border-left-color: #f59e0b; }
+.stack__item[data-cat="api"]       { border-left-color: #06b6d4; }
+.stack__item[data-cat="tool"]      { border-left-color: #ec4899; }
+
+.stack__item:hover {
+  border-left-width: 3px;
+}
+.stack__item[data-cat="lang"]:hover      { background: rgba(59, 130, 246, 0.08); }
+.stack__item[data-cat="framework"]:hover { background: rgba(168, 85, 247, 0.08); }
+.stack__item[data-cat="db"]:hover        { background: rgba(34, 197, 94, 0.08); }
+.stack__item[data-cat="infra"]:hover     { background: rgba(245, 158, 11, 0.08); }
+.stack__item[data-cat="api"]:hover       { background: rgba(6, 182, 212, 0.08); }
+.stack__item[data-cat="tool"]:hover      { background: rgba(236, 72, 153, 0.08); }
+
 
 /* --- About --- */
 .about {

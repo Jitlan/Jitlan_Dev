@@ -111,6 +111,7 @@
     { icon: '##', text: 'Enterprise application builder' },
     { icon: '!!', text: 'Exploring MCP servers & agentic workflows' },
     { icon: '>>', text: '8+ years full-stack experience' },
+    { icon: '++', text: 'Building an AI knowledge base in Obsidian — linking skills, prompts & workflows', isNew: true },
   ];
 
   const tickerTrack = document.querySelector('.ticker__track');
@@ -124,8 +125,12 @@
         el.target = '_blank';
         el.rel = 'noopener';
       }
+      var label = item.isNew
+        ? '<span class="ticker__new">NEW</span> <span class="ticker__wave">' + item.text + '</span>'
+        : item.text;
       el.innerHTML =
-        '<span class="ticker__icon">' + item.icon + '</span> ' + item.text;
+        '<span class="ticker__icon">' + item.icon + '</span> ' + label;
+      if (item.isNew) el.classList.add('ticker__item--new');
       return el;
     }
 
