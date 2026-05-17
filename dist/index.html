@@ -82,8 +82,30 @@
 
   <!-- Theme Toggle -->
   <button class="theme-toggle" aria-label="Toggle dark mode">
-    <span class="theme-toggle__icon" aria-hidden="true">&#9788;</span>
-
+    <span class="theme-toggle__faces" aria-hidden="true">
+      <span class="theme-toggle__face theme-toggle__face--moon">
+        <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.5" fill="currentColor"/>
+          <circle cx="8.6" cy="8.8" r="1.4" fill="rgba(0,0,0,0.22)"/>
+          <circle cx="15.2" cy="13.8" r="1.8" fill="rgba(0,0,0,0.22)"/>
+          <circle cx="9.8" cy="15.2" r="0.95" fill="rgba(0,0,0,0.22)"/>
+          <circle cx="14" cy="8.4" r="0.7" fill="rgba(0,0,0,0.22)"/>
+        </svg>
+      </span>
+      <span class="theme-toggle__face theme-toggle__face--sun">
+        <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" fill="currentColor"/>
+          <line x1="12" y1="2.2" x2="12" y2="4.8"/>
+          <line x1="12" y1="19.2" x2="12" y2="21.8"/>
+          <line x1="2.2" y1="12" x2="4.8" y2="12"/>
+          <line x1="19.2" y1="12" x2="21.8" y2="12"/>
+          <line x1="5.2" y1="5.2" x2="7" y2="7"/>
+          <line x1="17" y1="17" x2="18.8" y2="18.8"/>
+          <line x1="5.2" y1="18.8" x2="7" y2="17"/>
+          <line x1="17" y1="7" x2="18.8" y2="5.2"/>
+        </svg>
+      </span>
+    </span>
   </button>
 
   <!-- Stock Ticker -->
@@ -122,6 +144,10 @@
           <a href="https://news.ycombinator.com/user?id=jliebling" class="btn btn--hn" target="_blank" rel="noopener">
             <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h16v16H0V0zm8.2 8.9l2.9-5.5h-1.6L7.5 7.3 5.4 3.4H3.8l3 5.5v4h1.4v-4z"/></svg>
             Hacker News
+          </a>
+          <a href="https://endorsements.app/u/jordanliebling" class="btn btn--endorse" target="_blank" rel="noopener">
+            <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M256 120c-12 0-22 10-22 22v138h-60c-16 0-26 18-16 30l82 108c8 10 24 10 32 0l82-108c10-12 0-30-16-30h-60V142c0-12-10-22-22-22z" transform="rotate(180 256 256)"/></svg>
+            Endorse me
           </a>
         </nav>
       </div>
@@ -197,14 +223,12 @@
         <div class="about__card">
           <div class="about__icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
             </svg>
           </div>
-          <h3>Architecture</h3>
-          <p>Architected the frontend for a microservices-based platform with AI workflows in mind. Also architected <a href="https://capitol-watch.com" target="_blank" rel="noopener">Capitol-Watch</a> using a user-driven design approach. Currently working on a new frontend for Capitol-Watch that leverages modern web technologies and implements AI-driven features.</p>
+          <h3>Personal R&amp;D</h3>
+          <p>Continuously evaluating new additions to my personal toolkit &mdash; agent harnesses, MCP servers, model-selection strategies, skill packs, and emerging dev workflows. Treating my own setup as a sandbox lets me form real opinions on what's worth standardizing before bringing the patterns back to the team.</p>
         </div>
 
       </div>
@@ -217,14 +241,25 @@
       <h2 class="section-title">Side Projects</h2>
       <div class="projects__grid">
 
-        <a href="https://capitol-watch.com" target="_blank" rel="noopener" class="project-card">
+        <a href="https://votehound.com" target="_blank" rel="noopener" class="project-card">
           <div class="project-card__preview">
-            <img src="assets/capitol-watch-preview.png" alt="Capitol-Watch preview" loading="lazy">
+            <img src="assets/votehound-preview.png" alt="VoteHound preview" loading="lazy">
           </div>
           <div class="project-card__info">
-            <h3>Capitol-Watch</h3>
+            <h3>VoteHound</h3>
             <p>Real-time congressional activity tracker. Aggregates votes, bills, and legislator data into a clean, searchable interface.</p>
-            <span class="project-card__link">capitol-watch.com &rarr;</span>
+            <span class="project-card__link">votehound.com &rarr;</span>
+          </div>
+        </a>
+
+        <a href="https://endorsements.app" target="_blank" rel="noopener" class="project-card">
+          <div class="project-card__preview">
+            <img src="assets/endorsements-preview.png" alt="Endorsements preview" loading="lazy">
+          </div>
+          <div class="project-card__info">
+            <h3>Endorsements</h3>
+            <p>Merit backed by real people. Thank and recommend colleagues with endorsements tied to a verified professional identity and validated by an AI agent before going public &mdash; built for the AI-slop era.</p>
+            <span class="project-card__link">endorsements.app &rarr;</span>
           </div>
         </a>
 
@@ -275,6 +310,27 @@
     <p>
       Technical expertise spans TypeScript, JavaScript, Java, React, Angular, Next.js, Vue.js,
       Spring Boot, Node.js, Express, PostgreSQL, Redis, Azure, Docker, and GitHub Actions.
+    </p>
+    <p>
+      Current focus areas include agent harness design, token-budget management, and model
+      selection for production agentic systems; deploying coordinated multi-agent teams via
+      Claude Code remote-control mode; building AI tools for research and discovery workflows;
+      and evaluating which Scrum ceremonies still earn their keep in an AI-assisted engineering
+      practice. Treats his personal stack as a sandbox for AI tooling, harnesses, MCP servers,
+      and skill packs &mdash; forming opinions on what's worth standardizing before bringing
+      patterns back to the team.
+    </p>
+    <p>
+      Side projects include <a href="https://votehound.com">VoteHound</a>, a real-time
+      congressional activity tracker; <a href="https://endorsements.app">Endorsements.app</a>,
+      a verified-identity professional endorsement platform built for the AI-slop era;
+      and <a href="https://github.com/Jitlan/sysmon">Sysmon</a>, a lightweight system
+      performance monitor for multi-agent terminal workflows.
+    </p>
+    <p>
+      Open to connecting with recruiters, engineering leaders, and fellow practitioners
+      working on AI-enabled developer tooling, agentic systems, or applied research.
+      Reach out on <a href="https://www.linkedin.com/in/jordan-liebling-480763120/">LinkedIn</a>.
     </p>
   </section>
 

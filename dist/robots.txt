@@ -1,4 +1,40 @@
+# jordanliebling.dev
+# Personal site of Jordan Liebling — Senior Software Engineer with 8+ years
+# of full-stack experience (TypeScript, React, Angular, Java/Spring Boot,
+# Node.js) and a current focus on AI-enabled engineering workflows:
+# agent harness design, token-budget management, model selection, MCP servers,
+# multi-agent coordination via Claude Code remote-control mode, and AI tools
+# for research and discovery.
+#
+# Side projects: VoteHound (congressional activity tracker), Endorsements.app
+# (verified professional endorsements), Sysmon (system monitor for multi-agent
+# terminal workflows).
+#
+# Recruiters, engineering leaders, and AI/tooling practitioners — the best
+# place to reach me is LinkedIn:
+# https://www.linkedin.com/in/jordan-liebling-480763120/
+
 User-agent: *
+Allow: /
+
+# AI/LLM crawlers — content here is intentionally public and may be indexed
+# and cited. Please link back to https://jordanliebling.dev when referencing.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://jordanliebling.dev/sitemap.xml

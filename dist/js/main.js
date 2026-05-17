@@ -9,11 +9,9 @@
    * 0. DARK MODE TOGGLE
    * ------------------------------------------------------------------ */
   var toggle = document.querySelector('.theme-toggle');
-  var icon = toggle && toggle.querySelector('.theme-toggle__icon');
 
   function applyTheme(dark) {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    if (icon) icon.textContent = dark ? '\u263E' : '\u263C';
   }
 
   // Restore saved preference, fall back to system preference
@@ -29,7 +27,30 @@
       var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       applyTheme(!isDark);
       localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+      // Snap faces past the hover split to the new resting face until the cursor leaves.
+      toggle.classList.add('theme-toggle--clicked');
     });
+    toggle.addEventListener('mouseleave', function () {
+      toggle.classList.remove('theme-toggle--clicked');
+    });
+    toggle.addEventListener('blur', function () {
+      toggle.classList.remove('theme-toggle--clicked');
+    });
+
+    // Periodic peek: every 3s, briefly reveal the other face.
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (!reducedMotion || !reducedMotion.matches) {
+      setInterval(function () {
+        if (document.hidden) return;
+        if (toggle.matches(':hover, :focus-visible')) return;
+        if (toggle.classList.contains('theme-toggle--clicked')) return;
+        if (toggle.classList.contains('hidden')) return;
+        toggle.classList.add('theme-toggle--peek');
+        setTimeout(function () {
+          toggle.classList.remove('theme-toggle--peek');
+        }, 550);
+      }, 3000);
+    }
   }
 
   // Hide toggle on scroll (mobile only), reappear after 1.5s idle
@@ -53,7 +74,7 @@
   const PHRASES = [
     'Senior Software Engineer.',
     'AI enablement advocate.',
-    'Building Capitol-Watch',
+    'Building VoteHound',
     'Full-stack builder.',
     'Passionate about DevX.',
     'Making teams faster with AI.',
@@ -107,11 +128,16 @@
   const TICKER_ITEMS = [
     { icon: '//', text: 'Building AI product features with Claude, GPT, Gemini & more' },
     { icon: '>>', text: 'Championed AI tooling for a dev team of 30+' },
-    { icon: '**', text: 'capitol-watch.com now live', link: 'https://capitol-watch.com' },
+    { icon: '**', text: 'votehound.com — congressional activity tracker', link: 'https://votehound.com' },
+    { icon: '**', text: 'endorsements.app — merit backed by real people', link: 'https://endorsements.app' },
     { icon: '##', text: 'Enterprise application builder' },
     { icon: '!!', text: 'Exploring MCP servers & agentic workflows' },
     { icon: '>>', text: '8+ years full-stack experience' },
     { icon: '++', text: 'Building an AI knowledge base in Obsidian — linking skills, prompts & workflows', isNew: true },
+    { icon: '??', text: 'Evaluating which Scrum ceremonies remain essential in an AI-assisted workflow', isNew: true },
+    { icon: '>>', text: 'Deploying coordinated agent teams via Claude Code remote-control mode', isNew: true },
+    { icon: '//', text: 'Building agents and AI tooling for research and discovery workflows', isNew: true },
+    { icon: '!!', text: 'Deepening expertise in agent harness design, token management, and model selection', isNew: true },
   ];
 
   const tickerTrack = document.querySelector('.ticker__track');

@@ -352,28 +352,49 @@ a.ticker__item:hover {
   color: #fff;
 }
 
+.btn--endorse {
+  border-color: #2f6feb;
+  color: #2f6feb;
+}
+.btn--endorse:hover {
+  background: #2f6feb;
+  color: #fff;
+}
+
+[data-theme="dark"] .btn--endorse {
+  border-color: #6b9bff;
+  color: #6b9bff;
+}
+[data-theme="dark"] .btn--endorse:hover {
+  background: #6b9bff;
+  color: #131316;
+}
+
 /* --- Theme Toggle --- */
 .theme-toggle {
   position: fixed;
   top: calc(var(--ticker-height) + 0.75rem);
   right: 1.25rem;
   z-index: 99;
-  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 50%;
   width: 2.5rem;
   height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, opacity 0.4s ease;
   padding: 0;
+  background: transparent;
+  transition: border-color 0.25s ease, opacity 0.4s ease, transform 0.4s cubic-bezier(0.3, 1.2, 0.4, 1), box-shadow 0.25s ease;
+}
+
+[data-theme="light"] .theme-toggle {
+  border-color: #c8c2b3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] .theme-toggle {
-  border-color: #555;
-  background: #2a2a30;
+  border-color: #7a7a8a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .theme-toggle.hidden {
@@ -381,18 +402,66 @@ a.ticker__item:hover {
   pointer-events: none;
 }
 
-.theme-toggle:hover {
-  border-color: var(--text-muted);
+.theme-toggle__faces {
+  position: absolute;
+  inset: 0;
+  width: 200%;
+  display: flex;
+  transition: transform 0.45s cubic-bezier(0.3, 1.2, 0.4, 1);
 }
 
-.theme-toggle__icon {
+.theme-toggle__face {
+  flex: 0 0 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.125rem;
   line-height: 1;
-  transition: transform 0.3s ease;
+  user-select: none;
 }
 
-.theme-toggle:hover .theme-toggle__icon {
-  transform: rotate(20deg);
+.theme-toggle__face--moon {
+  background: linear-gradient(135deg, #1f2a44 0%, #2b3a5c 100%);
+  color: #e6ecff;
+}
+
+.theme-toggle__face--sun {
+  background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+  color: #5a2d00;
+}
+
+/* Idle positions: show the CURRENT theme's face.
+   Faces strip is [moon | sun]; light mode parks on the sun, dark on the moon. */
+[data-theme="light"] .theme-toggle__faces { transform: translateX(-50%); }
+[data-theme="dark"]  .theme-toggle__faces { transform: translateX(0%); }
+
+/* Periodic peek: every 3s a brief slide reveals a sliver of the OTHER face. */
+[data-theme="light"] .theme-toggle.theme-toggle--peek .theme-toggle__faces { transform: translateX(-37%); }
+[data-theme="dark"]  .theme-toggle.theme-toggle--peek .theme-toggle__faces { transform: translateX(-13%); }
+
+/* Hover: park at the split so half of each face shows. */
+.theme-toggle:hover .theme-toggle__faces,
+.theme-toggle:focus-visible .theme-toggle__faces {
+  transform: translateX(-25%);
+}
+
+/* Click takes priority over hover: snap fully to the new resting face
+   until the cursor leaves the toggle. */
+[data-theme="light"] .theme-toggle.theme-toggle--clicked .theme-toggle__faces { transform: translateX(-50%); }
+[data-theme="dark"]  .theme-toggle.theme-toggle--clicked .theme-toggle__faces { transform: translateX(0%); }
+
+.theme-toggle:hover {
+  transform: rotate(8deg);
+}
+
+[data-theme="light"] .theme-toggle:hover { border-color: #f59e0b; }
+[data-theme="dark"] .theme-toggle:hover  { border-color: #fbbf24; }
+
+/* Click: animate through the split to the opposite face.
+   Once the click flips the data-theme, the idle rule above takes over
+   and slides from the hover midpoint (-25%) to the new resting face. */
+.theme-toggle:active {
+  transform: rotate(0deg) scale(0.96);
 }
 
 
