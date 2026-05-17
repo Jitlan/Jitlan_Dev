@@ -73,8 +73,9 @@
    * ------------------------------------------------------------------ */
   const PHRASES = [
     'Senior Software Engineer.',
-    'AI enablement advocate.',
-    'Building VoteHound',
+    'AI implementation expert.',
+    'Teaching teams to ship with AI.',
+    'Building VoteHound.',
     'Full-stack builder.',
     'Passionate about DevX.',
     'Making teams faster with AI.',
