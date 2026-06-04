@@ -5,7 +5,7 @@
   "main": "server.js",
   "homepage": "https://jordanliebling.dev",
   "scripts": {
-    "deploy": "gh-pages -d dist"
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -15,7 +15,6 @@
   "author": "Jordan Liebling",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.4",
-    "gh-pages": "^6.3.0"
+    "express": "^4.16.4"
   }
 }
