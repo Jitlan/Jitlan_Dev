@@ -197,7 +197,7 @@
   /* ------------------------------------------------------------------
    * 3. SCROLL FADE-IN
    * ------------------------------------------------------------------ */
-  var fadeEls = document.querySelectorAll('.about__card, .project-card');
+  var fadeEls = document.querySelectorAll('.about__card, .project-card, .bio__content');
 
   if (fadeEls.length && 'IntersectionObserver' in window) {
     var observer = new IntersectionObserver(
