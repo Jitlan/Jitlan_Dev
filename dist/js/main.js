@@ -128,7 +128,7 @@
    * ------------------------------------------------------------------ */
   const TICKER_ITEMS = [
     { icon: '//', text: 'Building AI product features with Claude, GPT, Gemini & more' },
-    { icon: '>>', text: 'Championed AI tooling for a dev team of 30+' },
+    { icon: '>>', text: 'Championed AI tooling for a dev team of ~75' },
     { icon: '**', text: 'votehound.com — congressional activity tracker', link: 'https://votehound.com' },
     { icon: '**', text: 'endorsements.app — merit backed by real people', link: 'https://endorsements.app' },
     { icon: '##', text: 'Enterprise application builder' },
