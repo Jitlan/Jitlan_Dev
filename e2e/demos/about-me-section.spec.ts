@@ -58,7 +58,7 @@ test.describe("About Me section demo", () => {
     await page.goto(BASE);
     const darkBg = await bg();
 
-    expect(lightBg).toBe("rgb(245, 243, 239)"); // --bg light
-    expect(darkBg).toBe("rgb(19, 19, 22)"); // --bg dark
+    expect(lightBg).toBe("rgb(244, 241, 234)"); // --bg light
+    expect(darkBg).toBe("rgb(22, 19, 15)"); // --bg dark
   });
 });
