@@ -128,7 +128,7 @@
    * ------------------------------------------------------------------ */
   const TICKER_ITEMS = [
     { icon: '//', text: 'Building AI product features with Claude, GPT, Gemini & more' },
-    { icon: '>>', text: 'Championed AI tooling for a dev team of ~75' },
+    { icon: '>>', text: 'Championed AI tooling for a dev team of ~30' },
     { icon: '**', text: 'votehound.com — congressional activity tracker', link: 'https://votehound.com' },
     { icon: '**', text: 'endorsements.app — merit backed by real people', link: 'https://endorsements.app' },
     { icon: '##', text: 'Enterprise application builder' },
@@ -139,6 +139,7 @@
     { icon: '>>', text: 'Deploying coordinated agent teams via Claude Code remote-control mode', isNew: true },
     { icon: '//', text: 'Building agents and AI tooling for research and discovery workflows', isNew: true },
     { icon: '!!', text: 'Deepening expertise in agent harness design, token management, and model selection', isNew: true },
+    { icon: '++', text: 'Building and exploring effective AI-enabled tooling for accelerating development', isNew: true },
   ];
 
   const tickerTrack = document.querySelector('.ticker__track');
