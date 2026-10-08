@@ -145,6 +145,12 @@ a:hover {
   outline-offset: 3px;
 }
 
+/* The footer and ticker are always dark, so their focus ring is always cream. */
+.footer__container :focus-visible,
+.ticker :focus-visible {
+  outline-color: var(--cream);
+}
+
 /* Content floats above the painting. */
 body > section,
 body > footer {
@@ -232,6 +238,13 @@ body > footer {
 
 .section-title + * {
   clear: both;
+}
+
+[data-theme="dark"] .section-title {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 235, 200, 0.07),
+    inset 0 0 0 1px rgba(255, 235, 200, 0.06),
+    0 8px 22px -12px rgba(0, 0, 0, 0.7);
 }
 
 /* Inside a parchment panel the label is redundant. */
@@ -438,7 +451,7 @@ a.ticker__item:hover {
 }
 
 .ticker__separator {
-  color: #5C4A3A;
+  color: #8A7158;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   flex-shrink: 0;
@@ -614,6 +627,10 @@ a.ticker__item:hover {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
   transition: background 0.2s, color 0.2s, transform 0.2s var(--spring), box-shadow 0.2s;
   cursor: pointer;
+}
+
+[data-theme="dark"] .btn {
+  box-shadow: 0 1px 0 rgba(255, 235, 200, 0.06) inset;
 }
 
 .btn:hover {
@@ -1444,6 +1461,12 @@ a.ticker__item:hover {
     padding: 0.3rem 0.8rem 0.35rem 0.7rem;
   }
 
+  .stack .container,
+  .footer__container {
+    margin: 0 1rem;
+    width: auto;
+  }
+
   .stack .container {
     padding: 1.5rem 1rem 1.75rem;
   }
@@ -1544,6 +1567,15 @@ a.ticker__item:hover {
     animation: none;
   }
 
+  .btn:hover,
+  .btn:active,
+  .theme-toggle:hover,
+  .theme-toggle:active,
+  .project-card:hover .project-card__preview img {
+    transform: none;
+    transition: none;
+  }
+
   .bio__afterhours-sun {
     transform: translateY(0);
     transition: none;
@@ -1552,5 +1584,29 @@ a.ticker__item:hover {
   .scene__orb,
   .scene__sky {
     transition: none;
+  }
+}
+
+/* --- Forced colours (Windows High Contrast) -------------------------------- */
+@media (forced-colors: active) {
+  .scene,
+  .leaves {
+    display: none;
+  }
+
+  .hero__container::before,
+  .bio__content::before,
+  .stack .container::before,
+  .about__card::before,
+  .project-card::before,
+  .section-title {
+    background: Canvas;
+    filter: none;
+    box-shadow: none;
+    border: 1px solid CanvasText;
+  }
+
+  .hero__photo::after {
+    display: none;
   }
 }
