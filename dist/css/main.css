@@ -508,8 +508,8 @@ a.ticker__item:hover {
 
 .hero__greeting {
   font-family: var(--font-display);
-  font-style: italic;
   font-weight: 400;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
   font-size: 1.125rem;
   color: var(--text-muted);
   margin-bottom: 0.5rem;
