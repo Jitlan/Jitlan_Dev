@@ -582,8 +582,9 @@ a.ticker__item:hover {
 
 /* Gold leaf by night. */
 [data-theme="dark"] .hero__name {
-  background: linear-gradient(180deg, #F2DC9A 0%, #D9B457 48%, #B07A1E 100%);
-  background-size: 100% 1.05em;
+  background: linear-gradient(180deg, #E2BE5E 0%, #F2DC9A 18%, #D9B457 52%, #B07A1E 82%, #E2BE5E 100%);
+  background-size: 100% 1.02em;
+  background-repeat: repeat;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -592,11 +593,10 @@ a.ticker__item:hover {
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
 }
 
-/* The clip only wipes left to right; it reaches well above and below the line box so
-   ascenders and descenders (the g in Liebling) are never cut off. */
+/* No clip or mask on the name, ever: descenders (the g in Liebling) must stay whole. */
 @keyframes name-in {
-  0%   { opacity: 0; clip-path: inset(-0.3em 100% -0.4em -0.1em); transform: translateY(18px) rotateX(12deg); }
-  100% { opacity: 1; clip-path: inset(-0.3em -0.2em -0.4em -0.1em); transform: translateY(0) rotateX(0deg); }
+  0%   { opacity: 0; transform: translateY(22px) rotateX(14deg); }
+  100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
 }
 
 @keyframes fade-in {
@@ -1548,7 +1548,6 @@ a.ticker__item:hover {
   .ticker__wave {
     animation: none;
     opacity: 1;
-    clip-path: none;
   }
 
   .hero__photo {
