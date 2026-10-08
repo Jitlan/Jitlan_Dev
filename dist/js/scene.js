@@ -35,7 +35,7 @@ import * as THREE from './vendor/three.module.min.js';
       canvas: canvas,
       antialias: false,
       alpha: false,
-      powerPreference: 'high-performance',
+      powerPreference: 'default',
       failIfMajorPerformanceCaveat: false
     });
   } catch (err) {
@@ -56,11 +56,11 @@ import * as THREE from './vendor/three.module.min.js';
 
   var DPR_CAP = lowPower ? 1.25 : 1.5;
   var RT_SCALE = lowPower ? 0.7 : 0.62;          // painterly pass runs at reduced resolution
-  var KUWAHARA_RADIUS = lowPower ? 1 : 2;
+  var KUWAHARA_RADIUS = lowPower ? 1 : 3;
   var STAR_COUNT = lowPower ? 420 : 900;
   var TREE_COUNT = lowPower ? 110 : 260;
   var LEAF_COUNT = lowPower ? 140 : 380;
-  var TERRAIN_SEG = lowPower ? [90, 150] : [130, 210];
+  var TERRAIN_SEG = lowPower ? [90, 150] : [100, 170];
 
   /* ------------------------------------------------------------------
    * World layout
@@ -171,7 +171,7 @@ import * as THREE from './vendor/three.module.min.js';
     '  vec3 col = vColor * (uAmbient * 0.85 + 0.12 + uLightColor * uLightIntensity * ndl * 0.62) + uLightColor * rim * 0.45;',
     '  float mottle = 0.93 + 0.14 * vnoise(vWorld.xz * 1.6 + vWorld.y * 0.7);',
     '  col *= mottle;',
-    '  col = mix(col, 1.0 - exp(-col * 1.25), 0.45);',
+    '  col = mix(col, 1.0 - exp(-col * 1.25), 0.3);',
     '  col = applyFog(col, vDist);',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
@@ -320,6 +320,12 @@ import * as THREE from './vendor/three.module.min.js';
     '  vec2 uv = vUv;',
     '  vec2 warp = vec2(vnoise(uv * vec2(16.0, 10.0) + uTime * 0.03), vnoise(uv * vec2(10.0, 16.0) - uTime * 0.025)) - 0.5;',
     '  uv += warp * 0.0065;',
+    '  // Brush direction: a slowly varying flow field; the sample is smeared along it.',
+    '  float ang = vnoise(uv * 4.0 + 3.7) * 6.2831;',
+    '  vec2 dir2 = vec2(cos(ang), sin(ang)) * uTexel * 3.0;',
+    '  vec3 smear = vec3(0.0);',
+    '  for (int k = -3; k <= 3; k++) { if (k == 0) continue; smear += texture2D(tDiffuse, uv + dir2 * float(k)).rgb; }',
+    '  smear /= 6.0;',
     '  vec3 best = vec3(0.0); float bestVar = 1e9;',
     '  for (int s = 0; s < 4; s++) {',
     '    vec2 dir = vec2(s == 0 || s == 3 ? -1.0 : 1.0, s < 2 ? -1.0 : 1.0);',
@@ -334,10 +340,11 @@ import * as THREE from './vendor/three.module.min.js';
     '    float v = sq.r + sq.g + sq.b;',
     '    if (v < bestVar) { bestVar = v; best = mean; }',
     '  }',
-    '  vec3 col = best;',
+    '  vec3 col = mix(best, smear, 0.35);',
     '  col = mix(col, floor(col * 20.0 + 0.5) / 20.0, 0.2);',
-    '  float weave = (sin(gl_FragCoord.x * 0.9) * sin(gl_FragCoord.y * 0.9)) * 0.012 + (vnoise(gl_FragCoord.xy * 0.45) - 0.5) * 0.04;',
-    '  col += weave;',
+    '  // Stroke texture: stretched noise instead of a grid.',
+    '  col *= 0.96 + 0.08 * vnoise(vec2(vUv.x * 90.0 + ang, vUv.y * 14.0));',
+    '  col += (vnoise(gl_FragCoord.xy * 0.45) - 0.5) * 0.035;',
     '  float vig = smoothstep(0.45, 1.15, length((vUv - 0.5) * vec2(1.25, 1.0)) * 1.35);',
     '  col *= 1.0 - uVignette * vig;',
     '  gl_FragColor = vec4(col, 1.0);',
@@ -363,7 +370,7 @@ import * as THREE from './vendor/three.module.min.js';
     'varying float vTwinkle;',
     'void main(){',
     '  float r = length(gl_PointCoord - 0.5) * 2.0;',
-    '  float a = (1.0 - smoothstep(0.25, 0.95, r)) * vTwinkle;',
+    '  float a = (1.0 - smoothstep(0.15, 1.0, r)) * vTwinkle;',
     '  gl_FragColor = vec4(vec3(0.95, 0.96, 1.0) * a * 1.2, 1.0);',
     '}'
   ].join('\n');
@@ -444,7 +451,7 @@ import * as THREE from './vendor/three.module.min.js';
       var x = mix(-260, 260, t) + (hash2(i, 1) - 0.5) * 50;
       var z = -352 + hash2(i, 2) * 40 - Math.abs(t - 0.5) * 50;
       var radius = 42 + hash2(i, 3) * 38;
-      var height = 48 + hash2(i, 4) * 58 + (1 - Math.abs(t - 0.5) * 2) * 24;
+      var height = 36 + hash2(i, 4) * 44 + (1 - Math.abs(t - 0.5) * 2) * 14;
       var g = new THREE.ConeGeometry(radius, height, 7, 3, false).toNonIndexed();
       var p = g.attributes.position;
       var frac = new Float32Array(p.count);
@@ -606,15 +613,15 @@ import * as THREE from './vendor/three.module.min.js';
   });
   var sky = new THREE.Mesh(new THREE.SphereGeometry(700, 36, 20), skyMat);
   sky.frustumCulled = false;
-  sky.renderOrder = -3;
+  sky.renderOrder = 1;
 
   var orbMat = new THREE.ShaderMaterial({
     uniforms: { uColor: { value: new THREE.Vector3(1, 1, 0.9) }, uGlow: { value: new THREE.Vector3(1, 0.6, 0.3) }, uMoon: { value: 0 }, uGlowStrength: { value: 1 } },
-    vertexShader: orbVertex, fragmentShader: orbFragment, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+    vertexShader: orbVertex, fragmentShader: orbFragment, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true
   });
   var orb = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), orbMat);
   orb.frustumCulled = false;
-  orb.renderOrder = -2;
+  orb.renderOrder = 3;
 
   var lakeMat = new THREE.ShaderMaterial({
     uniforms: Object.assign({
@@ -638,7 +645,7 @@ import * as THREE from './vendor/three.module.min.js';
       pos[i * 3] = Math.cos(el) * Math.sin(az) * r;
       pos[i * 3 + 1] = Math.sin(el) * r;
       pos[i * 3 + 2] = Math.cos(el) * Math.cos(az) * r;
-      size[i] = 6 + Math.pow(hash2(i, 33), 2.5) * 11;
+      size[i] = (6 + Math.pow(hash2(i, 33), 2.5) * 11) * 1.5;
       phase[i] = hash2(i, 34);
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -651,7 +658,7 @@ import * as THREE from './vendor/three.module.min.js';
     });
     var points = new THREE.Points(geo, mat);
     points.frustumCulled = false;
-    points.renderOrder = -1;
+    points.renderOrder = 2;
     return points;
   }
 
@@ -670,13 +677,24 @@ import * as THREE from './vendor/three.module.min.js';
       uTexel: { value: new THREE.Vector2(1 / 2, 1 / 2) },
       uResolution: { value: new THREE.Vector2(2, 2) },
       uTime: shared.uTime,
-      uVignette: { value: 0.28 }
+      uVignette: { value: 0.16 }
     },
     vertexShader: postVertex, fragmentShader: postFragment, depthTest: false, depthWrite: false
   });
   var postScene = new THREE.Scene();
   var postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMat));
+
+  // The brush pass is expensive per pixel, so it runs at render-target size and is then copied up.
+  var rt2 = new THREE.WebGLRenderTarget(2, 2, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
+  var copyMat = new THREE.ShaderMaterial({
+    uniforms: { tDiffuse: { value: rt2.texture } },
+    vertexShader: postVertex,
+    fragmentShader: 'precision mediump float; uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ gl_FragColor = texture2D(tDiffuse, vUv); }',
+    depthTest: false, depthWrite: false
+  });
+  var copyScene = new THREE.Scene();
+  copyScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), copyMat));
 
   /* ------------------------------------------------------------------
    * State: progress + palette from main.js
@@ -686,8 +704,9 @@ import * as THREE from './vendor/three.module.min.js';
   var current = { progress: state.progress };
   var tmp = new THREE.Vector3();
 
+  var lastActive = 0;
   window.addEventListener('jl:state', function (e) {
-    if (e && e.detail) { state = e.detail; target.progress = state.progress; needsRender = true; }
+    if (e && e.detail) { state = e.detail; target.progress = state.progress; needsRender = true; lastActive = performance.now(); }
   });
 
   /* The scene eases its own progress (camera lag), so it samples the timeline itself
@@ -701,7 +720,10 @@ import * as THREE from './vendor/three.module.min.js';
 
   function setVec(u, rgb) { u.value.set(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255); }
 
+  var lastApplied = { p: -1, b: -1 };
   function applyPalette(pal) {
+    if (pal.progress === lastApplied.p && pal.night === lastApplied.b) return;
+    lastApplied.p = pal.progress; lastApplied.b = pal.night;
     var c = pal.rgb;
     setVec(skyMat.uniforms.uSkyTop, c.skyTop);
     setVec(skyMat.uniforms.uSkyMid, c.skyMid);
@@ -754,7 +776,8 @@ import * as THREE from './vendor/three.module.min.js';
     var tx = trailX(tz);
     var ty = terrainHeight(tx, tz) + EYE;
     var arrive = sstep(0.72, 1, p);
-    var pitch = mix(-0.2, 1.4, arrive);                       // lift the gaze toward the sky for the payoff
+    var depart = 1 - sstep(0, 0.25, p);
+    var pitch = mix(-0.2, 1.4, arrive) + 1.1 * depart;        // look up at dawn and again for the payoff
     tmp.set(tx, mix(mix(ty, y, 0.5), y, arrive) + pitch, tz); // ...and stop following the trail down into the lake
     camera.lookAt(tmp);
     camera.rotation.z = Math.sin(p * 6.0) * 0.012;
@@ -773,22 +796,26 @@ import * as THREE from './vendor/three.module.min.js';
    * ------------------------------------------------------------------ */
   var width = 0, height = 0, lastDpr = 0;
   var resizePending = true;
+  var CANVAS_BUDGET = 2.4e6;    // drawing-buffer pixels: a painting does not need retina sharpness
+  var RT_BUDGET = 1.15e6;       // brush-pass pixels
   function resize() {
     resizePending = false;
     var w = window.innerWidth, h = window.innerHeight;
-    var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
     if (!w || !h) { width = 0; height = 0; return; }           // nothing to draw into yet
+    var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP, Math.sqrt(CANVAS_BUDGET / (w * h)));
     if (w === width && h === height && dpr === lastDpr) return;
     width = w; height = h; lastDpr = dpr;
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    var rw = Math.max(2, Math.floor(width * dpr * RT_SCALE)), rh = Math.max(2, Math.floor(height * dpr * RT_SCALE));
+    var scale = Math.min(RT_SCALE, Math.sqrt(RT_BUDGET / (width * dpr * height * dpr)));
+    var rw = Math.max(2, Math.floor(width * dpr * scale)), rh = Math.max(2, Math.floor(height * dpr * scale));
     rt.setSize(rw, rh);
-    stars.material.uniforms.uScale.value = dpr * RT_SCALE;
+    rt2.setSize(rw, rh);
+    stars.material.uniforms.uScale.value = dpr * scale;
     postMat.uniforms.uTexel.value.set(1 / rw, 1 / rh);
-    postMat.uniforms.uResolution.value.set(width * dpr, height * dpr);
+    postMat.uniforms.uResolution.value.set(rw, rh);
     needsRender = true;
   }
 
@@ -802,11 +829,16 @@ import * as THREE from './vendor/three.module.min.js';
   var fallT = 0, driftT = 0, spinT = 0;
   var first = true;
 
+  var parity = 0;
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
     if (resizePending) resize();
     if (!width || !height) return;
+    // Half rate while the visitor is just reading (and always on low-power devices).
+    parity ^= 1;
+    var idle = now - lastActive > 1000 && Math.abs(target.progress - current.progress) < 0.0005;
+    if ((lowPower || idle) && parity && !first) return;
     var dt = lastT ? Math.min((now - lastT) / 1000, 0.1) : 0.016;
     lastT = now;
     if (!reduceMotion) simTime += dt;
@@ -837,8 +869,10 @@ import * as THREE from './vendor/three.module.min.js';
 
     renderer.setRenderTarget(rt);
     renderer.render(scene, camera);
-    renderer.setRenderTarget(null);
+    renderer.setRenderTarget(rt2);
     renderer.render(postScene, postCamera);
+    renderer.setRenderTarget(null);
+    renderer.render(copyScene, postCamera);
     frames++;
     if (frames === 1 && !lost && root.classList.contains('no-webgl') === false) {
       root.classList.add('has-webgl');
@@ -871,7 +905,11 @@ import * as THREE from './vendor/three.module.min.js';
   });
 
   resize();
-  start();
+  // Compile shaders in parallel where the driver allows it; otherwise compile synchronously without the warning.
+  var gl = renderer.getContext();
+  var parallel = gl && gl.getExtension && gl.getExtension('KHR_parallel_shader_compile');
+  if (parallel && renderer.compileAsync) renderer.compileAsync(scene, camera).then(start, start);
+  else { try { renderer.compile(scene, camera); } catch (err) { /* compiled lazily on first render */ } start(); }
 
   JL.scene = { renderer: renderer, scene: scene, camera: camera, orb: orb, ready: true, counts: { trees: trees.count, leaves: LEAF_COUNT, stars: STAR_COUNT }, get frames() { return frames; } };
 })();

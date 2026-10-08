@@ -36,7 +36,7 @@
       sun: '#FFF3CF', sunGlow: '#FFB36E', fog: '#DACBD2',
       light: '#FFD9A8', ambient: '#9A9CC2', lightIntensity: 1.0,
       panel: '#F6EEDF', panelEdge: '#CDB893', card: '#FCF7EC',
-      sunX: 0.60, sunY: 0.12, stars: 0.15, moon: 0 }),
+      sunX: 0.36, sunY: 0.27, stars: 0.15, moon: 0 }),
     frame(DAY_INK, { at: 0.25, // mid-morning, the valley opens up
       skyTop: '#4C7DB4', skyMid: '#9FBFDB', horizon: '#F2D9B4',
       sun: '#FFF8E0', sunGlow: '#FFE2A8', fog: '#E6DED0',
@@ -54,13 +54,13 @@
       sun: '#FFE28C', sunGlow: '#FFA24E', fog: '#E8C8A2',
       light: '#FFC07A', ambient: '#A892AD', lightIntensity: 1.0,
       panel: '#F7EBD3', panelEdge: '#CBAE80', card: '#FCF3E2',
-      sunX: 0.40, sunY: 0.26, stars: 0, moon: 0 }),
+      sunX: 0.40, sunY: 0.20, stars: 0, moon: 0 }),
     frame(DAY_INK, { at: 1.00, // sunset over the lake: the payoff
       skyTop: '#3B3764', skyMid: '#B65B49', horizon: '#EF8A3C',
       sun: '#FFB347', sunGlow: '#FF8C42', fog: '#C9A08A',
       light: '#FF9A5C', ambient: '#8A6A86', lightIntensity: 0.9,
-      panel: '#F4E4CE', panelEdge: '#C6A579', card: '#FAEEDD',
-      sunX: 0.50, sunY: 0.07, stars: 0.05, moon: 0 })
+      panel: '#F3DDBD', panelEdge: '#C6A579', card: '#F9E6CA',
+      sunX: 0.56, sunY: 0.17, stars: 0.05, moon: 0 })
   ];
 
   var NIGHT = [
@@ -93,7 +93,7 @@
       sun: '#FFF6DC', sunGlow: '#AFBBDD', fog: '#222A40',
       light: '#D5DCF0', ambient: '#4A5878', lightIntensity: 0.7,
       panel: '#1B1814', panelEdge: '#362E26', card: '#231F1A',
-      sunX: 0.55, sunY: 0.27, stars: 1, moon: 1 })
+      sunX: 0.55, sunY: 0.21, stars: 1, moon: 1 })
   ];
 
   /* Autumn foliage shared by the scene and the CSS fallback leaves. */

@@ -73,8 +73,17 @@
     return timeline.blend(timeline.sample(progress, 'light'), timeline.sample(progress, 'dark'), blend);
   }
 
+  var lastDom = { p: -1, b: -1 };
   function apply(pal) {
     var k;
+    // The scene wants exact values every frame; the DOM only needs steps it can see.
+    JL.state = { progress: progress, theme: blend >= 0.5 ? 'night' : 'day', blend: blend, wind: wind, palette: pal };
+    try {
+      window.dispatchEvent(new CustomEvent('jl:state', { detail: JL.state }));
+    } catch (err) { /* very old browsers: the DOM still gets its colours */ }
+    var qp = Math.round(progress * 200) / 200, qb = Math.round(blend * 50) / 50;
+    if (qp === lastDom.p && qb === lastDom.b) return;
+    lastDom.p = qp; lastDom.b = qb;
     for (k in VAR_MAP) setVar(VAR_MAP[k], pal.hex[k]);
     setVar('--panel-rgb', pal.rgb.panel.map(Math.round).join(', '));
     setVar('--card-rgb', pal.rgb.card.map(Math.round).join(', '));
@@ -85,10 +94,6 @@
     setVar('--moon', pal.moon.toFixed(3));
     setVar('--night', blend.toFixed(3));
     if (themeMeta) themeMeta.setAttribute('content', pal.hex.panel);
-    JL.state = { progress: progress, theme: blend >= 0.5 ? 'night' : 'day', blend: blend, wind: wind, palette: pal };
-    try {
-      window.dispatchEvent(new CustomEvent('jl:state', { detail: JL.state }));
-    } catch (err) { /* very old browsers: the DOM still gets its colours */ }
   }
 
   /* ------------------------------------------------------------------
@@ -172,7 +177,7 @@
     Array.prototype.forEach.call(tiltEls, function (el) {
       var maxX = el.classList.contains('hero__photo') ? 4 : 5;
       var maxY = el.classList.contains('hero__photo') ? 6 : 6;
-      var raf = null, px = 0, py = 0;
+      var raf = null, px = 0, py = 0, rect = null;
       function write() {
         raf = null;
         el.style.setProperty('--rx', (-py * maxX).toFixed(2) + 'deg');
@@ -180,9 +185,9 @@
         el.style.setProperty('--mx', ((px + 1) * 50).toFixed(1) + '%');
         el.style.setProperty('--my', ((py + 1) * 50).toFixed(1) + '%');
       }
-      el.addEventListener('pointerenter', function () { el.classList.add('is-tilting'); });
+      el.addEventListener('pointerenter', function () { el.classList.add('is-tilting'); rect = el.getBoundingClientRect(); });
       el.addEventListener('pointermove', function (e) {
-        var r = el.getBoundingClientRect();
+        var r = rect || (rect = el.getBoundingClientRect());
         if (!r.width || !r.height) return;
         px = ((e.clientX - r.left) / r.width) * 2 - 1;
         py = ((e.clientY - r.top) / r.height) * 2 - 1;
@@ -190,6 +195,7 @@
       });
       el.addEventListener('pointerleave', function () {
         el.classList.remove('is-tilting');
+        rect = null;
         if (raf) { cancelAnimationFrame(raf); raf = null; }
         el.style.setProperty('--rx', '0deg');
         el.style.setProperty('--ry', '0deg');
