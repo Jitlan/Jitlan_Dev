@@ -469,5 +469,13 @@
   <script src="js/timeline.js"></script>
   <script src="js/main.js"></script>
   <script src="js/journey.js"></script>
+  <script type="module">
+    // WebGL painting: loaded only when journey.js decided the device wants it.
+    if (window.JL && window.JL.wantsWebGL) {
+      import('./js/scene.js')
+        .then(function () { if (!document.documentElement.classList.contains('has-webgl')) window.JL.journey.fallback(); })
+        .catch(function () { window.JL.journey.fallback(); });
+    }
+  </script>
 </body>
 </html>

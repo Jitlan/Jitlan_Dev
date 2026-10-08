@@ -253,29 +253,17 @@
   }
 
   var canvas = document.getElementById('scene-canvas');
-  var wantsWebGL = !!canvas && !reduceMotion && !saveData && webglAvailable() &&
+  // The inline <script type="module"> in index.html imports js/scene.js when this is true;
+  // browsers without module support never run it and simply keep the CSS painting.
+  JL.wantsWebGL = !!canvas && !reduceMotion && !saveData && webglAvailable() &&
     ('noModule' in HTMLScriptElement.prototype) && location.protocol !== 'file:';
-
-  if (wantsWebGL) {
-    var loaded = false;
-    try {
-      // `new Function` keeps the dynamic import() syntax away from parsers that predate it.
-      var load = new Function('url', 'return import(url)');
-      load(new URL('js/scene.js', document.baseURI).href).then(function () {
-        loaded = root.classList.contains('has-webgl');
-        if (!loaded) fallback();
-      }).catch(function () { fallback(); });
-    } catch (err) {
-      fallback();
-    }
-  } else {
-    fallback();
-  }
+  if (!JL.wantsWebGL) fallback();
 
   JL.journey = {
     get progress() { return progress; },
     get blend() { return blend; },
     get wind() { return wind; },
-    refresh: function () { measure(); readScroll(); kick(); }
+    refresh: function () { measure(); readScroll(); kick(); },
+    fallback: fallback
   };
 })();
