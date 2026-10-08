@@ -228,11 +228,16 @@
   function webglAvailable() {
     try {
       var c = document.createElement('canvas');
-      return !!(c.getContext('webgl2') || c.getContext('webgl'));
+      var gl = c.getContext('webgl2');          // three r180 requires WebGL2
+      if (!gl) return false;
+      var ext = gl.getExtension('WEBGL_lose_context');
+      if (ext) ext.loseContext();              // free the probe context
+      return true;
     } catch (err) { return false; }
   }
 
   function fallback() {
+    root.classList.remove('has-webgl');
     root.classList.add('no-webgl');
     root.setAttribute('data-scene', 'css');
     var holder = document.querySelector('.leaves');

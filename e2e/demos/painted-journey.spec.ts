@@ -8,9 +8,10 @@ async function scrollTo(page: Page, fraction: number) {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     window.scrollTo({ top: Math.round(f * max), behavior: "instant" as ScrollBehavior });
   }, fraction);
+  // journey.js damps progress over a few hundred milliseconds; wait for it to settle.
   await expect
-    .poll(() => page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue("--journey"))))
-    .toBeCloseTo(fraction, 1);
+    .poll(() => page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue("--journey"))), { timeout: 15_000 })
+    .toBeCloseTo(fraction, 2);
 }
 
 function cssVar(page: Page, name: string) {
@@ -74,6 +75,7 @@ test.describe("painted journey", () => {
   });
 
   test("time of day follows scroll: dawn at the top, sunset at the bottom", async ({ page }) => {
+    test.slow(); // several damped scroll positions while the WebGL scene renders
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto(BASE);
     await scrollTo(page, 0);
@@ -98,6 +100,7 @@ test.describe("painted journey", () => {
 
   for (const scheme of ["light", "dark"] as const) {
     test(`body text keeps AA contrast on panels at every keyframe (${scheme})`, async ({ page }) => {
+      test.slow(); // five damped scroll positions while the WebGL scene renders
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto(BASE);
       for (const f of [0, 0.25, 0.5, 0.75, 1]) {

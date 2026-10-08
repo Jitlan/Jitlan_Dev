@@ -45,7 +45,14 @@ import * as THREE from './vendor/three.module.min.js';
   THREE.ColorManagement.enabled = false;
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.autoClear = true;
-  root.classList.add('has-webgl');
+  // A shader that fails to compile would otherwise leave a black canvas over the page.
+  renderer.debug.onShaderError = function () { giveUp(); };
+  function giveUp() {
+    stop();
+    root.classList.remove('has-webgl');
+    if (JL.journey && JL.journey.fallback) JL.journey.fallback();
+    else { root.classList.add('no-webgl'); root.setAttribute('data-scene', 'css'); }
+  }
 
   var DPR_CAP = lowPower ? 1.25 : 1.5;
   var RT_SCALE = lowPower ? 0.7 : 0.62;          // painterly pass runs at reduced resolution
@@ -258,21 +265,21 @@ import * as THREE from './vendor/three.module.min.js';
   var leafVertex = [
     'attribute vec4 aSeed; attribute vec3 aColor; attribute float aSpeed;',
     'uniform float uTime; uniform vec3 uCenter; uniform float uCalm; uniform vec3 uBox; uniform float uHide;',
+    'uniform float uFallT; uniform float uDriftT; uniform float uSpinT;',
     'varying vec3 vColor; varying vec2 vUv; varying float vDist; varying vec3 vNormal; varying float vHide;',
     'mat3 rotX(float a){ float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0, 0.0, c, s, 0.0, -s, c); }',
     'mat3 rotY(float a){ float c = cos(a), s = sin(a); return mat3(c, 0.0, -s, 0.0, 1.0, 0.0, s, 0.0, c); }',
     'mat3 rotZ(float a){ float c = cos(a), s = sin(a); return mat3(c, s, 0.0, -s, c, 0.0, 0.0, 0.0, 1.0); }',
     'void main(){',
     '  float t = uTime;',
-    '  float fall = (0.55 + aSpeed * 0.75) * (0.45 + 0.55 * uCalm);',
     '  vec3 p = aSeed.xyz;',
-    '  p.x += sin(t * 0.7 + aSeed.w * 6.2831) * (0.9 + 0.8 * uCalm) + t * 0.35 * uCalm;',
+    '  p.x += sin(t * 0.7 + aSeed.w * 6.2831) * (0.9 + 0.8 * uCalm) + uDriftT * 0.35;',
     '  p.z += cos(t * 0.5 + aSeed.w * 3.1) * 0.5;',
-    '  p.y -= t * fall;',
+    '  p.y -= uFallT * (0.55 + aSpeed * 0.75);',
     '  p.x = mod(p.x - uCenter.x + uBox.x * 0.5, uBox.x) - uBox.x * 0.5 + uCenter.x;',
     '  p.z = mod(p.z - uCenter.z + uBox.z * 0.55, uBox.z) - uBox.z * 0.55 + uCenter.z;',
     '  p.y = mod(p.y - uCenter.y + uBox.y * 0.35, uBox.y) - uBox.y * 0.35 + uCenter.y;',
-    '  float spin = t * (0.8 + aSpeed * 1.6) * (0.5 + 0.5 * uCalm) + aSeed.w * 10.0;',
+    '  float spin = uSpinT * (0.8 + aSpeed * 1.6) + aSeed.w * 10.0;',
     '  mat3 R = rotY(spin * 0.7) * rotX(spin) * rotZ(aSeed.w * 6.2831);',
     '  vec3 local = R * (position * (0.8 + aSpeed * 0.6));',
     '  vNormal = R * vec3(0.0, 0.0, 1.0);',
@@ -289,7 +296,7 @@ import * as THREE from './vendor/three.module.min.js';
     'uniform vec3 uLightDir; uniform vec3 uLightColor; uniform vec3 uAmbient; uniform float uLightIntensity;',
     'varying vec3 vColor; varying vec2 vUv; varying float vDist; varying vec3 vNormal; varying float vHide;',
     'void main(){',
-    '  if (vHide > 0.5 || vDist < 1.6) discard;',
+    '  if (vHide > 0.5 || vDist < 2.6) discard;',
     '  vec2 q = (vUv - 0.5) * vec2(2.0, 2.0);',
     '  float tip = smoothstep(0.2, 1.0, abs(q.x));',
     '  float shape = length(vec2(q.x, q.y * (1.0 + tip * 0.6)));',
@@ -554,7 +561,8 @@ import * as THREE from './vendor/three.module.min.js';
     geo.setAttribute('position', base.attributes.position);
     geo.setAttribute('uv', base.attributes.uv);
     var seeds = new Float32Array(LEAF_COUNT * 4), colors = new Float32Array(LEAF_COUNT * 3), speeds = new Float32Array(LEAF_COUNT);
-    var foliage = JL.timeline.FOLIAGE.map(JL.timeline.hexToRgb);
+    // Only the deciduous colours fall; the evergreen tones stay on the trees.
+    var foliage = JL.timeline.FOLIAGE.filter(function (h) { return h !== '#2F4A32' && h !== '#3F7A78'; }).map(JL.timeline.hexToRgb);
     for (var i = 0; i < LEAF_COUNT; i++) {
       seeds[i * 4] = (hash2(i, 21) - 0.5) * 40;
       seeds[i * 4 + 1] = hash2(i, 22) * 18;
@@ -574,6 +582,9 @@ import * as THREE from './vendor/three.module.min.js';
         uCenter: { value: new THREE.Vector3() },
         uCalm: { value: 1 },
         uHide: { value: 0 },
+        uFallT: { value: 0 },
+        uDriftT: { value: 0 },
+        uSpinT: { value: 0 },
         uBox: { value: new THREE.Vector3(40, 18, 36) }
       }, shared),
       vertexShader: leafVertex,
@@ -760,10 +771,15 @@ import * as THREE from './vendor/three.module.min.js';
   /* ------------------------------------------------------------------
    * Sizing and frame loop
    * ------------------------------------------------------------------ */
-  var width = 1, height = 1;
+  var width = 0, height = 0, lastDpr = 0;
+  var resizePending = true;
   function resize() {
-    width = window.innerWidth; height = window.innerHeight;
+    resizePending = false;
+    var w = window.innerWidth, h = window.innerHeight;
     var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+    if (!w || !h) { width = 0; height = 0; return; }           // nothing to draw into yet
+    if (w === width && h === height && dpr === lastDpr) return;
+    width = w; height = h; lastDpr = dpr;
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -778,14 +794,19 @@ import * as THREE from './vendor/three.module.min.js';
 
   var needsRender = true;
   var running = false;
+  var raf = 0;
+  var lost = false;
   var frames = 0;
   var lastT = 0;
   var simTime = 0;
+  var fallT = 0, driftT = 0, spinT = 0;
   var first = true;
 
   function frame(now) {
     if (!running) return;
-    requestAnimationFrame(frame);
+    raf = requestAnimationFrame(frame);
+    if (resizePending) resize();
+    if (!width || !height) return;
     var dt = lastT ? Math.min((now - lastT) / 1000, 0.1) : 0.016;
     lastT = now;
     if (!reduceMotion) simTime += dt;
@@ -802,32 +823,55 @@ import * as THREE from './vendor/three.module.min.js';
     applyPalette(paletteAt(current.progress));
     placeCamera(current.progress);
 
+    // Leaf motion is integrated here so a change of pace (the calm near the lake)
+    // never moves leaves that are already on screen.
+    if (!reduceMotion) {
+      var calm = leaves.material.uniforms.uCalm.value;
+      fallT += dt * (0.45 + 0.55 * calm);
+      driftT += dt * calm;
+      spinT += dt * (0.5 + 0.5 * calm);
+      leaves.material.uniforms.uFallT.value = fallT;
+      leaves.material.uniforms.uDriftT.value = driftT;
+      leaves.material.uniforms.uSpinT.value = spinT;
+    }
+
     renderer.setRenderTarget(rt);
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
     renderer.render(postScene, postCamera);
     frames++;
+    if (frames === 1 && !lost && root.classList.contains('no-webgl') === false) {
+      root.classList.add('has-webgl');
+      root.setAttribute('data-scene', 'webgl');
+    }
   }
 
   function start() {
-    if (running) return;
+    if (running || lost) return;
     running = true; lastT = 0;
-    requestAnimationFrame(frame);
+    raf = requestAnimationFrame(frame);
   }
-  function stop() { running = false; }
+  function stop() {
+    running = false;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
 
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', function () { resizePending = true; needsRender = true; });
   document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
   canvas.addEventListener('webglcontextlost', function (e) {
     e.preventDefault();
-    stop();
-    root.classList.remove('has-webgl');
-    root.classList.add('no-webgl');
+    lost = true;
+    giveUp();
+  });
+  canvas.addEventListener('webglcontextrestored', function () {
+    lost = false;
+    width = 0; height = 0; resizePending = true; frames = 0; first = true;
+    root.classList.remove('no-webgl');
+    start();
   });
 
   resize();
   start();
 
   JL.scene = { renderer: renderer, scene: scene, camera: camera, orb: orb, ready: true, counts: { trees: trees.count, leaves: LEAF_COUNT, stars: STAR_COUNT }, get frames() { return frames; } };
-  root.setAttribute('data-scene', 'webgl');
 })();

@@ -473,7 +473,7 @@
     // WebGL painting: loaded only when journey.js decided the device wants it.
     if (window.JL && window.JL.wantsWebGL) {
       import('./js/scene.js')
-        .then(function () { if (!document.documentElement.classList.contains('has-webgl')) window.JL.journey.fallback(); })
+        .then(function () { if (!(window.JL.scene && window.JL.scene.ready)) window.JL.journey.fallback(); })
         .catch(function () { window.JL.journey.fallback(); });
     }
   </script>
