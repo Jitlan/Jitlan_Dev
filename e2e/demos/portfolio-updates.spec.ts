@@ -23,6 +23,9 @@ test.describe("portfolio updates demo", () => {
     const card = page.locator(".project-card", { hasText: "VoteHound" });
     const img = card.locator("img");
     await expect(img).toHaveAttribute("src", /votehound-preview\.png/);
+    // The preview is loading="lazy": scroll it into view and wait for the bytes to arrive.
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
     const natural = await img.evaluate((el: HTMLImageElement) => ({
       w: el.naturalWidth,
       h: el.naturalHeight,

@@ -18,7 +18,9 @@ test.describe("About Me section demo", () => {
   test("renders the full prose: title, five paragraphs, four enablement bullets", async ({ page }) => {
     const bio = page.locator("#bio");
     await expect(bio.getByRole("heading", { name: "About Me" })).toBeVisible();
-    await expect(bio.locator(".bio__content > p")).toHaveCount(5);
+    // Four paragraphs sit directly in the content block; the fifth lives inside the after-hours card.
+    await expect(bio.locator(".bio__content > p")).toHaveCount(4);
+    await expect(bio.locator(".bio__afterhours-body > p:not(.bio__afterhours-label)")).toHaveCount(1);
     await expect(bio.locator(".bio__list li")).toHaveCount(4);
     await expect(bio).toContainText("MCP registry");
     await expect(bio).toContainText("idea to MVP");
@@ -42,8 +44,10 @@ test.describe("About Me section demo", () => {
     await expect(content).not.toHaveClass(/visible/);
     await content.scrollIntoViewIfNeeded();
     await expect(content).toHaveClass(/visible/);
-    const opacity = await content.evaluate((el) => getComputedStyle(el).opacity);
-    expect(Number(opacity)).toBe(1);
+    // The fade is a CSS transition, so poll until it lands rather than reading mid-animation.
+    await expect
+      .poll(() => content.evaluate((el) => Number(getComputedStyle(el).opacity)))
+      .toBe(1);
   });
 
   test("section follows the active theme in light and dark mode", async ({ page }) => {

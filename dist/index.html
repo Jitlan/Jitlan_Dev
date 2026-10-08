@@ -7,7 +7,19 @@
   <meta name="keywords" content="senior software engineer, staff engineer, full stack developer, AI engineering, AI workflows, TypeScript, React, Angular, Java, Spring Boot, RAG, Jordan Liebling, Jitlan">
   <meta name="author" content="Jordan Liebling">
   <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#f5f3ef">
+  <meta name="theme-color" content="#F6EEDF">
+
+  <!-- Apply the saved/system theme before first paint so there is no light flash
+       (main.js applies the same value again and owns the toggle). -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+        if (t) document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
@@ -35,7 +47,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/main.css">
@@ -81,6 +93,53 @@
   </script>
 </head>
 <body>
+
+  <!-- Painted landscape (purely decorative; the WebGL canvas covers the SVG
+       fallback when WebGL is available, otherwise the fallback stays visible) -->
+  <div class="scene" aria-hidden="true">
+    <div class="scene__fallback">
+      <div class="scene__sky"></div>
+      <div class="scene__orb"></div>
+      <svg class="scene__hills scene__hills--far" viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 210 C120 150 220 120 340 150 C430 172 470 110 560 96 C660 80 720 150 820 140 C900 132 960 70 1060 86 C1160 102 1210 170 1310 150 C1370 138 1410 120 1440 128 L1440 320 L0 320 Z"/>
+      </svg>
+      <svg class="scene__hills scene__hills--mid" viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 250 C140 200 260 240 380 210 C500 180 560 150 680 180 C800 210 860 250 980 230 C1100 210 1180 160 1300 190 C1370 208 1410 220 1440 226 L1440 320 L0 320 Z"/>
+      </svg>
+      <svg class="scene__hills scene__hills--near" viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 300 C160 280 260 250 420 262 C560 272 640 300 800 286 C940 274 1040 240 1180 256 C1300 270 1380 290 1440 292 L1440 320 L0 320 Z"/>
+      </svg>
+    </div>
+    <canvas class="scene__canvas" id="scene-canvas"></canvas>
+    <div class="scene__grain"></div>
+    <div class="scene__vignette"></div>
+  </div>
+  <div class="leaves" aria-hidden="true"></div>
+
+  <!-- Paint filters used by the stylesheet -->
+  <svg class="paint-defs" width="0" height="0" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="paint-portrait" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.06 0.08" numOctaves="3" seed="7" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+        <feGaussianBlur in="displaced" stdDeviation="0.3" result="softened"/>
+        <feColorMatrix in="softened" type="saturate" values="1.22" result="saturated"/>
+        <feComponentTransfer in="saturated">
+          <feFuncR type="gamma" amplitude="1.04" exponent="0.92" offset="0"/>
+          <feFuncG type="gamma" amplitude="1.02" exponent="0.95" offset="0"/>
+          <feFuncB type="gamma" amplitude="0.98" exponent="1.02" offset="0"/>
+        </feComponentTransfer>
+      </filter>
+      <filter id="brush-edge" x="-6%" y="-6%" width="112%" height="112%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.018 0.04" numOctaves="2" seed="3" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="brush-edge-fine" x="-6%" y="-6%" width="112%" height="112%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.022 0.035" numOctaves="3" seed="11" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
 
   <!-- Theme Toggle -->
   <button class="theme-toggle" aria-label="Toggle dark mode">
@@ -407,6 +466,8 @@
     </p>
   </section>
 
+  <script src="js/timeline.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/journey.js"></script>
 </body>
 </html>
