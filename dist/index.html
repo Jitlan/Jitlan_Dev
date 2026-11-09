@@ -39,6 +39,31 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/drive.css">
+
+  <!--
+    Pick the view before first paint: the 3D drive by default, the classic
+    page for ?view=classic, a saved choice, reduced-motion, or no WebGL2.
+  -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var view = 'drive';
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark' || theme === 'light') root.setAttribute('data-theme', theme);
+        else if (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) root.setAttribute('data-theme', 'dark');
+
+        var asked = new URLSearchParams(location.search).get('view');
+        var saved = localStorage.getItem('jl-view');
+        if (asked === 'classic' || asked === 'drive') view = asked;
+        else if (saved === 'classic' || saved === 'drive') view = saved;
+        else if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) view = 'classic';
+      } catch (e) {}
+      if (!window.WebGL2RenderingContext) view = 'classic';
+      root.setAttribute('data-view', view);
+    })();
+  </script>
 
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -408,5 +433,7 @@
   </section>
 
   <script src="js/main.js"></script>
+  <!-- If the drive module can't load at all, the classic page is still right here. -->
+  <script type="module" src="js/drive/main.js" onerror="document.documentElement.setAttribute('data-view','classic')"></script>
 </body>
 </html>

@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-const BASE = "http://localhost:8081";
+// These specs cover page content and the classic layout; the 3D drive view
+// (the default) has its own spec in drive-view.spec.ts.
+const BASE = "http://localhost:8081/?view=classic";
 
 test.describe("portfolio updates demo", () => {
   test.beforeEach(async ({ page }) => {

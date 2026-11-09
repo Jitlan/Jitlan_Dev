@@ -1,0 +1,1495 @@
+/* ==========================================================================
+   jordanliebling.dev — Drive view
+   --------------------------------------------------------------------------
+   Everything here is scoped to <html data-view="drive">. Without that
+   attribute the site is exactly the classic layout from main.css.
+
+   Layers, back to front:
+     canvas (3D) → HUD glass → section panels → cluster / nav → start button
+     → ticker + toggles → game UI
+   ========================================================================== */
+
+/* --- View toggle (present in both views) --- */
+.view-toggle {
+  position: fixed;
+  left: 1.25rem;
+  top: calc(var(--ticker-height) + 0.85rem);
+  z-index: 98;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.7rem;
+  color: var(--text-muted);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, opacity 0.3s;
+}
+
+.view-toggle:hover,
+.view-toggle:focus-visible {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+@media (max-width: 767px) {
+  .view-toggle {
+    top: auto;
+    bottom: 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   Drive view
+   ========================================================================== */
+html[data-view="drive"] {
+  --bg: #0b0e11;
+  --bg-alt: transparent;
+  --text: #eef6f5;
+  --text-muted: #b4c5c8;
+  --accent: #7fe3ff;
+  --accent-hover: #c5f4ff;
+  --border: rgba(150, 228, 255, 0.24);
+  --card-bg: rgba(8, 16, 20, 0.36);
+  --hud-cyan: #7fe3ff;
+  --hud-amber: #ffb454;
+  --hud-red: #ff5a3c;
+  --hud-line: rgba(150, 228, 255, 0.2);
+  /* fallbacks until the scene reports where the glass is */
+  --hud-x: 4vw;
+  --hud-y: 3.1rem;
+  --hud-w: 92vw;
+  --hud-h: 52vh;
+  --hud-bottom: 60vh;
+  --hud-bar: 34px;
+  color-scheme: dark;
+  background: #0b0e11;
+  scroll-behavior: auto;
+}
+
+html[data-view="drive"] body {
+  position: relative;
+  background: #0b0e11;
+  padding-top: 0;
+  overflow-x: hidden;
+}
+
+/* keep the screen-reader summary at the end of the document, as in the classic view,
+   so focusing its links doesn't yank the scroll position back to the top */
+html[data-view="drive"] body > .sr-only {
+  bottom: 0;
+}
+
+html[data-view="drive"] .drive-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  display: block;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  touch-action: pan-y;
+}
+
+html[data-view="drive"].drive-ready .drive-canvas {
+  opacity: 1;
+}
+
+html[data-view="drive"] .hud-spacer {
+  width: 1px;
+  pointer-events: none;
+}
+
+/* --- Ticker: reads as the tinted band at the top of the glass --- */
+html[data-view="drive"] .ticker {
+  background: linear-gradient(180deg, rgba(3, 6, 8, 0.94), rgba(3, 6, 8, 0.7));
+  border-bottom: 1px solid rgba(150, 228, 255, 0.12);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.35s ease;
+}
+
+html[data-view="drive"] .view-toggle {
+  background: rgba(6, 12, 16, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* --- HUD glass --- */
+html[data-view="drive"] .hud {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  transition: opacity 0.35s ease;
+}
+
+.hud__frame {
+  position: absolute;
+  left: var(--hud-x);
+  top: var(--hud-y);
+  width: var(--hud-w);
+  height: var(--hud-h);
+  background: linear-gradient(180deg, rgba(5, 11, 15, 0.7), rgba(5, 11, 15, 0.54));
+  border: 1px solid var(--hud-line);
+  border-radius: 3px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3), inset 0 0 44px rgba(127, 227, 255, 0.045);
+  -webkit-backdrop-filter: blur(8px) saturate(1.15);
+  backdrop-filter: blur(8px) saturate(1.15);
+  will-change: translate;
+}
+
+/* faint scan lines + a flash each time the waypoint changes */
+.hud__frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(160, 235, 255, 0.035) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+
+.hud__frame::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--hud-bar);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--hud-cyan), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hud__frame.is-switching::after {
+  animation: hud-scan 0.55s ease-out;
+}
+
+@keyframes hud-scan {
+  0% { opacity: 0.9; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(calc(var(--hud-h) - var(--hud-bar) - 4px)); }
+}
+
+.hud__bar {
+  height: var(--hud-bar);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0 0.9rem;
+  border-bottom: 1px solid rgba(150, 228, 255, 0.16);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--hud-cyan);
+  white-space: nowrap;
+}
+
+.hud__idx {
+  color: var(--hud-amber);
+}
+
+.hud__title {
+  color: #fff;
+  text-shadow: 0 0 12px rgba(127, 227, 255, 0.55);
+}
+
+.hud__ticks {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.hud__ticks i {
+  width: 14px;
+  height: 3px;
+  background: rgba(150, 228, 255, 0.2);
+  transition: background 0.3s;
+}
+
+.hud__ticks i.is-done {
+  background: rgba(127, 227, 255, 0.6);
+}
+
+.hud__ticks i.is-on {
+  background: var(--hud-amber);
+  box-shadow: 0 0 8px rgba(255, 180, 84, 0.8);
+}
+
+.hud__meta {
+  color: var(--text-muted);
+  min-width: 4.6rem;
+  text-align: right;
+}
+
+.hud__meta b {
+  color: #fff;
+  font-size: 0.8125rem;
+}
+
+.hud__corner {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 0 solid var(--hud-cyan);
+  opacity: 0.85;
+}
+
+.hud__corner--tl { left: -1px; top: -1px; border-left-width: 2px; border-top-width: 2px; }
+.hud__corner--tr { right: -1px; top: -1px; border-right-width: 2px; border-top-width: 2px; }
+.hud__corner--bl { left: -1px; bottom: -1px; border-left-width: 2px; border-bottom-width: 2px; }
+.hud__corner--br { right: -1px; bottom: -1px; border-right-width: 2px; border-bottom-width: 2px; }
+
+.hud__thumb {
+  position: absolute;
+  right: 5px;
+  top: calc(var(--hud-bar) + 10px);
+  bottom: 12px;
+  width: 2px;
+  background: rgba(150, 228, 255, 0.14);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.hud__thumb i {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background: var(--hud-cyan);
+  box-shadow: 0 0 6px rgba(127, 227, 255, 0.7);
+}
+
+/* "scroll to drive": a tab hanging off the bottom edge, gone after the first scroll */
+.hud__hint {
+  position: absolute;
+  left: 50%;
+  bottom: -0.72rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.22rem 0.65rem;
+  font-size: 0.5938rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #0b0e11;
+  background: var(--hud-cyan);
+  border-radius: 2px;
+  box-shadow: 0 0 16px rgba(127, 227, 255, 0.45);
+  transition: opacity 0.4s ease;
+}
+
+.hud__hint svg {
+  animation: scroll-bob 2s ease-in-out infinite;
+}
+
+.hud__frame.is-scrolled .hud__hint {
+  opacity: 0;
+}
+
+/* --- Driver's cluster: floats over the road, left of the main panel --- */
+.hud__cluster {
+  position: absolute;
+  right: calc(100vw - var(--hud-x) + 1.2rem);
+  top: calc(var(--hud-bottom) - 8.4rem);
+  padding: 0.7rem 0.9rem 0.75rem;
+  text-align: right;
+  color: #fff;
+  background: radial-gradient(120% 120% at 70% 50%, rgba(5, 11, 15, 0.5), rgba(5, 11, 15, 0) 72%);
+  text-shadow: 0 0 14px rgba(127, 227, 255, 0.6), 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 0, 0, 0.6);
+  will-change: translate;
+}
+
+.hud__big {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  line-height: 1;
+}
+
+.hud__big b {
+  font-size: 3.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__big span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--hud-cyan);
+  text-transform: uppercase;
+}
+
+.hud__sub {
+  margin-top: 0.45rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--hud-cyan);
+}
+
+.hud__gear {
+  color: var(--hud-amber);
+}
+
+.hud__way {
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(150, 228, 255, 0.35);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--hud-cyan);
+}
+
+.hud__way b {
+  color: #fff;
+}
+
+html.hud-compact .hud__cluster {
+  display: none;
+}
+
+html.hud-compact .hud__frame {
+  background: linear-gradient(180deg, rgba(5, 11, 15, 0.78), rgba(5, 11, 15, 0.66));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.hud-compact .hud__ticks i {
+  width: 9px;
+}
+
+/* full-width glass: the corner toggles drop to the bottom, out of its way
+   (and the view toggle to the middle, clear of the start button) */
+html.hud-compact .view-toggle,
+html.hud-compact .theme-toggle {
+  top: auto;
+  bottom: 1.25rem;
+}
+
+html.hud-compact .view-toggle {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* --- Section panels --- */
+html[data-view="drive"] .hud-panel {
+  position: fixed;
+  z-index: 10;
+  left: var(--hud-x);
+  top: calc(var(--hud-y) + var(--hud-bar) + 4px);
+  width: var(--hud-w);
+  height: calc(var(--hud-h) - var(--hud-bar) - 10px);
+  min-height: 0;
+  margin: 0;
+  padding: 0 1.35rem;
+  display: block;
+  background: none;
+  border: 0;
+  overflow: hidden;
+  overflow: clip; /* never scrollable in its own right: the HUD moves the content */
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 26px, 0);
+  transition: opacity 0.3s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+
+html[data-view="drive"] .hud-panel.is-before {
+  transform: translate3d(0, -26px, 0);
+}
+
+html[data-view="drive"] .hud-panel.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* the hero shows straight away, before any script has run */
+html[data-view="drive"]:not(.drive-ready) #hero {
+  opacity: 1;
+  transform: none;
+}
+
+html[data-view="drive"] .hud-panel.has-more-above { --fade-top: 26px; }
+html[data-view="drive"] .hud-panel.has-more-below { --fade-bottom: 34px; }
+
+html[data-view="drive"] .hud-panel > :first-child {
+  max-width: none;
+  margin: 0;
+  padding: 1rem 0 1.2rem;
+  will-change: transform;
+}
+
+html[data-view="drive"] .hud-panel a {
+  text-underline-offset: 2px;
+}
+
+html[data-view="drive"] .hud-panel :focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: 2px;
+}
+
+/* the bar already names the section */
+html[data-view="drive"] .section-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* --- Panel: driver (hero) --- */
+html[data-view="drive"] .hero__container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 1.5rem;
+  row-gap: 0.5rem;
+  align-items: start;
+  text-align: left;
+}
+
+html[data-view="drive"] .hero__top { grid-column: 1; grid-row: 1; }
+html[data-view="drive"] .hero__bottom { grid-column: 1 / -1; grid-row: 2; }
+
+html[data-view="drive"] .hero__photo {
+  grid-column: 2;
+  grid-row: 1;
+  width: clamp(84px, 9vw, 128px);
+  max-width: none;
+  position: relative;
+}
+
+html[data-view="drive"] .hero__photo img {
+  border: 1px solid var(--hud-line);
+  filter: grayscale(12%) contrast(1.04);
+}
+
+html[data-view="drive"] .hero__photo::after {
+  content: 'DRIVER';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.18rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--hud-cyan);
+  background: rgba(4, 9, 12, 0.72);
+}
+
+html[data-view="drive"] .hero__greeting {
+  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-cyan);
+}
+
+html[data-view="drive"] .hero__name {
+  margin-bottom: 0.4rem;
+  font-size: clamp(1.7rem, 3.2vw, 2.7rem);
+  color: #fff;
+  text-shadow: 0 0 22px rgba(127, 227, 255, 0.4);
+}
+
+html[data-view="drive"] .hero__tagline {
+  margin-bottom: 0;
+  min-height: 1.6em;
+  font-size: clamp(0.875rem, 1.35vw, 1.0625rem);
+  color: var(--hud-amber);
+}
+
+html[data-view="drive"] .hero__cursor {
+  color: var(--hud-amber);
+}
+
+html[data-view="drive"] .hero__positioning {
+  max-width: 46ch;
+  margin-bottom: 0.55rem;
+  font-size: 0.9688rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+html[data-view="drive"] .hero__hobbies {
+  margin-bottom: 0.85rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+html[data-view="drive"] .hero__ctas {
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+html[data-view="drive"] .btn {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.75rem;
+  border-width: 1px;
+  background: rgba(8, 16, 20, 0.4);
+}
+
+/* brand colours tuned for dark glass, whichever theme is active */
+html[data-view="drive"] .btn--github { border-color: #e4e4e7; color: #e4e4e7; }
+html[data-view="drive"] .btn--github:hover { background: #e4e4e7; color: #131316; }
+html[data-view="drive"] .btn--linkedin { border-color: #58aaf0; color: #58aaf0; }
+html[data-view="drive"] .btn--linkedin:hover { background: #58aaf0; color: #131316; }
+html[data-view="drive"] .btn--hn { border-color: #ff7a1f; color: #ff7a1f; }
+html[data-view="drive"] .btn--hn:hover { background: #ff7a1f; color: #131316; }
+html[data-view="drive"] .btn--endorse { border-color: #7fa8ff; color: #7fa8ff; }
+html[data-view="drive"] .btn--endorse:hover { background: #7fa8ff; color: #131316; }
+
+/* the classic scroll arrow is replaced by a tab on the HUD frame */
+html[data-view="drive"] .hero__scroll {
+  display: none;
+}
+
+.hud-egg {
+  display: none;
+}
+
+/* --- Panel: about me --- */
+html[data-view="drive"] .bio__content {
+  max-width: none;
+  margin: 0;
+}
+
+html[data-view="drive"] .bio__content p,
+html[data-view="drive"] .bio__list li {
+  font-size: 0.9063rem;
+  line-height: 1.68;
+  color: #d9e6e7;
+}
+
+html[data-view="drive"] .bio__content p { margin-bottom: 0.9rem; }
+html[data-view="drive"] .bio__list { margin-bottom: 0.9rem; }
+html[data-view="drive"] .bio__list li { margin-bottom: 0.3rem; }
+html[data-view="drive"] .bio__list li::before { color: var(--hud-amber); }
+
+html[data-view="drive"] .bio__afterhours {
+  margin: 1.2rem 0 1rem;
+  background: rgba(8, 16, 20, 0.42);
+  border-color: rgba(255, 180, 84, 0.32);
+}
+
+html[data-view="drive"] .bio__afterhours-sky {
+  border-bottom-color: rgba(255, 180, 84, 0.32);
+  background: linear-gradient(180deg, rgba(49, 46, 129, 0.5) 0%, rgba(131, 24, 67, 0.48) 55%, rgba(154, 52, 18, 0.5) 100%);
+}
+
+html[data-view="drive"] .bio__afterhours-body {
+  padding: 0.9rem 1.1rem 1.1rem;
+}
+
+html[data-view="drive"] .bio__content p.bio__afterhours-label {
+  color: var(--hud-amber);
+  margin-bottom: 0.5rem;
+}
+
+/* --- Panel: tech stack --- */
+html[data-view="drive"] .stack {
+  border: 0;
+}
+
+html[data-view="drive"] .stack__items {
+  justify-content: flex-start;
+  gap: 0.42rem;
+}
+
+html[data-view="drive"] .stack__item {
+  font-size: 0.7188rem;
+  padding: 0.2rem 0.5rem;
+  color: var(--text);
+  background: rgba(8, 16, 20, 0.44);
+}
+
+/* --- Panel: what I do --- */
+html[data-view="drive"] .about__grid {
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+html[data-view="drive"] .about__card {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  column-gap: 0.85rem;
+  padding: 0.75rem 0.9rem;
+}
+
+html[data-view="drive"] .about__icon {
+  grid-row: 1 / 3;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: 0.1rem 0 0;
+  color: var(--hud-cyan);
+}
+
+html[data-view="drive"] .about__card h3 {
+  margin-bottom: 0.25rem;
+  font-size: 0.9063rem;
+  color: #fff;
+}
+
+html[data-view="drive"] .about__card p {
+  grid-column: 2;
+  font-size: 0.8125rem;
+  line-height: 1.58;
+  color: #cfdddf;
+}
+
+/* --- Panel: side projects --- */
+html[data-view="drive"] .projects__grid {
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+html[data-view="drive"] .project-card {
+  display: grid;
+  grid-template-columns: clamp(6.2rem, 26%, 11rem) minmax(0, 1fr);
+  background: rgba(8, 16, 20, 0.4);
+}
+
+html[data-view="drive"] .project-card:hover {
+  transform: none;
+  border-color: var(--hud-cyan);
+  box-shadow: 0 0 0 1px rgba(127, 227, 255, 0.25), 0 0 26px rgba(127, 227, 255, 0.12);
+}
+
+html[data-view="drive"] .project-card__preview {
+  aspect-ratio: auto;
+  min-height: 5.4rem;
+  background: rgba(8, 16, 20, 0.6);
+}
+
+html[data-view="drive"] .project-card__preview img {
+  opacity: 0.92;
+}
+
+html[data-view="drive"] .project-card__info {
+  padding: 0.65rem 0.85rem;
+}
+
+html[data-view="drive"] .project-card__info h3 {
+  margin-bottom: 0.2rem;
+  font-size: 0.9063rem;
+  color: #fff;
+}
+
+html[data-view="drive"] .project-card__info p {
+  margin-bottom: 0.35rem;
+  font-size: 0.7813rem;
+  line-height: 1.5;
+  color: #cfdddf;
+}
+
+html[data-view="drive"] .project-card__link {
+  font-size: 0.6875rem;
+}
+
+/* --- Panel: contact (footer) --- */
+html[data-view="drive"] .footer__container {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.8rem;
+}
+
+html[data-view="drive"] .footer__links {
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+html[data-view="drive"] .footer__links a {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--hud-cyan);
+  border: 1px solid var(--hud-line);
+  background: rgba(8, 16, 20, 0.4);
+}
+
+html[data-view="drive"] .footer__links a:hover {
+  color: #0b0e11;
+  background: var(--hud-cyan);
+}
+
+html[data-view="drive"] .hud-egg {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--hud-amber);
+}
+
+/* --- Waypoint nav --- */
+.hud-nav {
+  display: none;
+}
+
+html[data-view="drive"] .hud-nav {
+  position: fixed;
+  right: 0.9rem;
+  top: calc(var(--hud-y) + var(--hud-h) / 2);
+  transform: translateY(-50%);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  transition: opacity 0.35s ease;
+}
+
+.hud-nav__dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--hud-cyan);
+  border-radius: 50%;
+  background: rgba(6, 12, 16, 0.6);
+  cursor: pointer;
+  transition: background 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+
+/* comfortable hit area around a small dot */
+.hud-nav__dot::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+
+.hud-nav__dot span {
+  position: absolute;
+  right: 1.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.2rem 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.86);
+  border: 1px solid var(--hud-line);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.hud-nav__dot:hover span,
+.hud-nav__dot:focus-visible span {
+  opacity: 1;
+}
+
+.hud-nav__dot.is-active {
+  background: var(--hud-amber);
+  border-color: var(--hud-amber);
+  box-shadow: 0 0 10px rgba(255, 180, 84, 0.85);
+}
+
+html.hud-compact .hud-nav {
+  display: none;
+}
+
+/* --- The start button: a real <button> riding on the 3D one --- */
+.start-btn {
+  display: none;
+}
+
+html[data-view="drive"] .start-btn {
+  display: block;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-view="drive"] .start-btn:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: 3px;
+}
+
+.start-btn span {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.5rem);
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.86);
+  border: 1px solid rgba(255, 180, 84, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.start-btn:hover span,
+.start-btn:focus-visible span {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Game
+   ========================================================================== */
+.game[hidden],
+.game__over[hidden] {
+  display: none;
+}
+
+html.is-gaming,
+html.is-gaming body {
+  overflow: hidden;
+}
+
+html.is-gaming .hud,
+html.is-gaming .hud-panel,
+html.is-gaming .hud-nav,
+html.is-gaming .ticker,
+html.is-gaming .view-toggle,
+html.is-gaming .theme-toggle {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.game {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  color: #fff;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* scoreboard along the top of the glass */
+.game__top {
+  position: absolute;
+  left: 50%;
+  top: max(0.9rem, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: stretch;
+  background: rgba(5, 11, 15, 0.6);
+  border: 1px solid var(--hud-line);
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.game__top.is-live {
+  opacity: 1;
+}
+
+.game__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  min-width: 6.6rem;
+  padding: 0.45rem 0.9rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.game__stat + .game__stat {
+  border-left: 1px solid rgba(150, 228, 255, 0.16);
+}
+
+.game__stat span,
+.game__speed span {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--hud-cyan);
+  text-transform: uppercase;
+}
+
+.game__stat b {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.game__stat--best b {
+  color: var(--hud-amber);
+}
+
+.game__stat--time.is-low b {
+  color: var(--hud-red);
+  animation: game-blink 0.5s steps(2) infinite;
+}
+
+/* speed and pace note, sitting just above the wheel rim */
+.game__hud {
+  position: absolute;
+  left: 50%;
+  top: var(--game-bottom, 46vh);
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  white-space: nowrap;
+  text-shadow: 0 0 14px rgba(127, 227, 255, 0.6), 0 1px 3px rgba(0, 0, 0, 0.85);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.game__hud.is-live {
+  opacity: 1;
+}
+
+.game__speed {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  line-height: 1;
+}
+
+.game__speed b {
+  min-width: 2.2ch;
+  text-align: right;
+  font-size: clamp(2.5rem, 6vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.game__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.55);
+  border: 1px solid var(--hud-line);
+  border-radius: 2px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.game__note em {
+  font-style: normal;
+  font-size: 0.6875rem;
+  color: var(--hud-cyan);
+}
+
+.game__note em:empty,
+.game__arrow:empty {
+  display: none;
+}
+
+.game__arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.game__note[data-state="lift"] {
+  border-color: var(--hud-amber);
+  color: var(--hud-amber);
+}
+
+.game__note[data-state="brake"] {
+  background: rgba(255, 70, 40, 0.92);
+  border-color: #ff8a70;
+  text-shadow: none;
+  animation: game-blink 0.28s steps(2) infinite;
+}
+
+.game__note[data-state="brake"] em {
+  color: #fff;
+}
+
+@keyframes game-blink {
+  50% { opacity: 0.55; }
+}
+
+.game__toast {
+  position: absolute;
+  left: 50%;
+  top: calc(max(0.9rem, env(safe-area-inset-top)) + 4.4rem);
+  transform: translateX(-50%);
+  max-width: min(34rem, 90vw);
+  padding: 0.55rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.72);
+  border: 1px solid var(--hud-line);
+  border-left: 3px solid var(--hud-amber);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.game__toast.is-on {
+  opacity: 1;
+}
+
+.game__pedals {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.game__pedal {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: min(42vw, 9.5rem);
+  height: 4.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.5);
+  border: 1px solid var(--hud-line);
+  border-radius: 4px;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.08s, transform 0.08s, border-color 0.08s;
+}
+
+.game__pedal kbd,
+.game__exit kbd,
+.game__actions kbd {
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.game__pedal--gas { border-color: rgba(127, 227, 255, 0.5); }
+.game__pedal--brake { border-color: rgba(255, 90, 60, 0.55); }
+
+.game__pedal--gas.is-down {
+  background: rgba(127, 227, 255, 0.32);
+  transform: translateY(2px);
+}
+
+.game__pedal--brake.is-down {
+  background: rgba(255, 90, 60, 0.4);
+  transform: translateY(2px);
+}
+
+@media (pointer: coarse) {
+  .game__pedal {
+    width: min(42vw, 11rem);
+    height: 7rem;
+    font-size: 0.9375rem;
+  }
+
+  .game__pedal kbd,
+  .game__exit kbd {
+    display: none;
+  }
+}
+
+.game__exit {
+  pointer-events: auto;
+  position: absolute;
+  right: 1rem;
+  top: max(1rem, env(safe-area-inset-top));
+  padding: 0.4rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.55);
+  border: 1px solid var(--hud-line);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.game__exit:hover {
+  border-color: var(--hud-cyan);
+}
+
+/* touch: thumbs own the bottom corners, so the way out sits just above the pedals */
+@media (pointer: coarse) {
+  .game__exit {
+    top: auto;
+    right: auto;
+    left: 50%;
+    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 7.7rem);
+    transform: translateX(-50%);
+    padding: 0.55rem 1.1rem;
+  }
+}
+
+.game__fade {
+  position: absolute;
+  inset: 0;
+  background: #06090c;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.game__over {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(36rem, calc(100vw - 1.5rem));
+  max-height: calc(100vh - 1.5rem);
+  max-height: calc(100dvh - 1.5rem);
+  overflow-y: auto;
+  padding: 1.5rem 1.6rem 1.4rem;
+  font-family: var(--font-body);
+  color: #eef6f5;
+  background: linear-gradient(180deg, rgba(8, 15, 19, 0.96), rgba(6, 11, 14, 0.96));
+  border: 1px solid var(--hud-line);
+  border-top: 2px solid var(--hud-amber);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  -webkit-user-select: text;
+  user-select: text;
+  animation: game-over-in 0.35s ease-out;
+}
+
+@keyframes game-over-in {
+  from { opacity: 0; transform: translate(-50%, -46%); }
+}
+
+.game__kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--hud-red);
+}
+
+.game__quote {
+  margin: 0.45rem 0 0.7rem;
+  font-family: var(--font-mono);
+  font-size: clamp(1.1rem, 2.6vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.game__summary {
+  font-size: 0.9375rem;
+  color: #c9d8da;
+}
+
+.game__summary b {
+  color: #fff;
+}
+
+.game__record {
+  display: inline-block;
+  margin-left: 0.3rem;
+  padding: 0.08rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0b0e11;
+  background: var(--hud-amber);
+  border-radius: 2px;
+}
+
+.game__record--minor {
+  color: var(--hud-cyan);
+  background: transparent;
+  border: 1px solid var(--hud-line);
+}
+
+.game__result {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.game__result div {
+  padding: 0.6rem 0.65rem;
+  background: rgba(127, 227, 255, 0.05);
+  border: 1px solid rgba(150, 228, 255, 0.14);
+}
+
+.game__result dt {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-cyan);
+}
+
+.game__result dd {
+  margin-top: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.game__result dd i {
+  margin-left: 0.25rem;
+  font-style: normal;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+.game__board-wrap h3 {
+  margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-cyan);
+}
+
+.game__board {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.game__board th,
+.game__board td {
+  padding: 0.32rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(150, 228, 255, 0.12);
+  white-space: nowrap;
+}
+
+.game__board th {
+  font-size: 0.5625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.game__board tr.is-current td {
+  color: var(--hud-amber);
+  background: rgba(255, 180, 84, 0.08);
+}
+
+.game__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.game__actions button {
+  padding: 0.6rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #fff;
+  background: transparent;
+  border: 1px solid var(--hud-line);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.game__actions .game__again {
+  color: #0b0e11;
+  background: var(--hud-amber);
+  border-color: var(--hud-amber);
+}
+
+.game__actions .game__again kbd {
+  color: rgba(11, 14, 17, 0.65);
+}
+
+.game__actions button:hover {
+  border-color: var(--hud-cyan);
+}
+
+.game__actions button:focus-visible,
+.game__exit:focus-visible,
+.game__pedal:focus-visible,
+.hud-nav__dot:focus-visible,
+.view-toggle:focus-visible {
+  outline: 2px solid var(--hud-cyan, #2563eb);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Small screens
+   ========================================================================== */
+@media (max-width: 767px) {
+  html[data-view="drive"] .hud-panel {
+    padding: 0 0.95rem;
+  }
+
+  html[data-view="drive"] .hud-panel > :first-child {
+    padding: 0.8rem 0 1rem;
+  }
+
+  html[data-view="drive"] .hero__container {
+    column-gap: 0.9rem;
+    align-items: start;
+    text-align: left;
+  }
+
+  html[data-view="drive"] .hero__photo {
+    width: 72px;
+  }
+
+  html[data-view="drive"] .hero__name {
+    font-size: 1.6rem;
+  }
+
+  html[data-view="drive"] .hero__positioning {
+    font-size: 0.875rem;
+  }
+
+  html[data-view="drive"] .hero__hobbies {
+    margin-bottom: 0.65rem;
+  }
+
+  html[data-view="drive"] .btn {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.6875rem;
+  }
+
+  html[data-view="drive"] .bio__content p,
+  html[data-view="drive"] .bio__list li {
+    font-size: 0.875rem;
+  }
+
+  .hud__bar {
+    gap: 0.5rem;
+    padding: 0 0.7rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+  }
+
+  .game__result {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .game__over {
+    padding: 1.15rem 1.05rem 1.05rem;
+  }
+
+  .game__board th:nth-child(5),
+  .game__board td:nth-child(5) {
+    display: none;
+  }
+
+  .game__toast {
+    font-size: 0.75rem;
+  }
+
+  .game__stat {
+    min-width: 5.4rem;
+    padding: 0.4rem 0.55rem 0.45rem;
+  }
+
+  .game__stat span {
+    letter-spacing: 0.1em;
+  }
+
+  .game__stat b {
+    font-size: 1.15rem;
+  }
+}
+
+/* short windows (13" laptops with a full browser chrome) */
+@media (max-height: 800px) and (min-width: 768px) {
+  html[data-view="drive"] .hud-panel > :first-child {
+    padding: 0.75rem 0 0.9rem;
+  }
+
+  html[data-view="drive"] .hero__container {
+    row-gap: 0.3rem;
+  }
+
+  html[data-view="drive"] .hero__name {
+    font-size: clamp(1.6rem, 2.9vw, 2.2rem);
+    margin-bottom: 0.25rem;
+  }
+
+  html[data-view="drive"] .hero__photo {
+    width: clamp(76px, 7.4vw, 104px);
+  }
+
+  html[data-view="drive"] .hero__positioning {
+    font-size: 0.9063rem;
+    line-height: 1.5;
+    margin-bottom: 0.4rem;
+  }
+
+  html[data-view="drive"] .hero__hobbies {
+    margin-bottom: 0.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-view="drive"] .hud-panel {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
+
+  .hud__frame.is-switching::after,
+  .game__note[data-state="brake"],
+  .game__stat--time.is-low b,
+  .hud__hint svg {
+    animation: none;
+  }
+}
