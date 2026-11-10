@@ -1098,6 +1098,7 @@ html.is-gaming .theme-toggle {
 }
 
 .game__exit kbd,
+.game__course kbd,
 .game__actions kbd {
   font-family: var(--font-mono);
   font-size: 0.5938rem;
@@ -1108,6 +1109,7 @@ html.is-gaming .theme-toggle {
 
 @media (pointer: coarse) {
   .game__exit kbd,
+  .game__course kbd,
   .game__actions kbd {
     display: none;
   }
@@ -1149,6 +1151,46 @@ html.is-gaming .theme-toggle {
     right: 1rem;
     bottom: max(1.1rem, env(safe-area-inset-bottom));
     padding: 0.6rem 0.9rem;
+  }
+}
+
+/* Between runs, on the start line: swap between the one-minute sprint and the long way. */
+.game__course {
+  display: none;
+  pointer-events: auto;
+  position: absolute;
+  right: 1rem;
+  top: calc(max(1rem, env(safe-area-inset-top)) + 2.6rem);
+  padding: 0.4rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: rgba(5, 11, 15, 0.55);
+  border: 1px solid var(--hud-line);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.game[data-state="ready"] .game__course {
+  display: block;
+}
+
+.game__course:hover {
+  border-color: var(--hud-cyan);
+}
+
+/* touch: centred just above the pedal read-out, clear of both it and the way out */
+@media (pointer: coarse) {
+  .game__course {
+    top: auto;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(max(1.1rem, env(safe-area-inset-bottom)) + 5.1rem);
+    padding: 0.6rem 0.9rem;
+    white-space: nowrap;
   }
 }
 
@@ -1401,6 +1443,7 @@ html.is-gaming .theme-toggle {
 
 .game__actions button:focus-visible,
 .game__exit:focus-visible,
+.game__course:focus-visible,
 .cafe__skip:focus-visible,
 .hud-nav__dot:focus-visible,
 .view-toggle:focus-visible {

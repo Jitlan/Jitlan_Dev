@@ -2,6 +2,8 @@ import { test, expect, type Page } from "@playwright/test";
 
 const BASE = "http://localhost:8081";
 const BOARD_KEY = "jl-drive-board-v1";
+const COURSE_KEY = "jl-drive-course";
+const MILE = 1609.344;
 
 // The drive view renders with WebGL; software rendering in CI-like
 // environments is slow, so give it room and don't run these side by side.
@@ -180,7 +182,7 @@ test.describe("push-to-start game", () => {
     await expect(page.locator("html")).toHaveClass(/is-gaming/);
     expect(await stepUntil(page, "ready")).toBe("ready");
     await expect(page.locator(".game__speed b")).toHaveText("0");
-    await expect(page.locator(".game__stat--dist b")).toHaveText("3.00"); // three miles to the café
+    await expect(page.locator(".game__stat--dist b")).toHaveText("0.75"); // the sprint: three-quarters of a mile to the café
     await expect(page.locator(".game__pedal")).toBeVisible();
 
     await page.keyboard.press("Escape");
@@ -283,7 +285,7 @@ test.describe("push-to-start game", () => {
     expect(again).toHaveLength(2);
   });
 
-  test("three miles of braking for the bends ends parked at the café, with a cortado to make", async ({ page }) => {
+  test("the sprint: about a minute of braking for the bends ends parked at the café, with a cortado to make", async ({ page }) => {
     test.setTimeout(180_000);
     await openDrive(page);
     await page.evaluate((k) => localStorage.removeItem(k), BOARD_KEY);
@@ -306,9 +308,9 @@ test.describe("push-to-start game", () => {
       return { state: g.state as string, miles: g.sim.distance / 1609.344, seconds: g.sim.time as number };
     });
     expect(drive.state).toBe("arrive"); // crossed the line without leaving the road
-    expect(drive.miles).toBeCloseTo(3, 2);
-    expect(drive.seconds).toBeGreaterThan(150); // "about three minutes"
-    expect(drive.seconds).toBeLessThan(240);
+    expect(drive.miles).toBeCloseTo(0.75, 2);
+    expect(drive.seconds).toBeGreaterThan(40); // "about a minute"
+    expect(drive.seconds).toBeLessThan(80);
 
     // The car brings itself into the lot and stops nose-in at the building.
     expect(await stepUntil(page, "parked", 3000)).toBe("parked");
@@ -377,6 +379,7 @@ test.describe("push-to-start game", () => {
     const board = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "[]"), BOARD_KEY);
     expect(board).toHaveLength(1);
     expect(board[0].why).toBe("cafe");
+    expect(board[0].c).toBe("sprint");
     expect(board[0].t).toBeCloseTo(drive.seconds, 0);
     expect(board[0].cup).toBeGreaterThan(70);
 
@@ -386,19 +389,98 @@ test.describe("push-to-start game", () => {
     await expect(page.locator(".hud-panel.is-active")).toHaveCount(1);
   });
 
+  test("the long way is still there: three miles, one click from the start line, remembered, with its own leaderboard", async ({ page }) => {
+    test.setTimeout(240_000);
+    await openDrive(page);
+    // one run from before there was a choice (those were all three miles), and one sprint
+    await page.evaluate(
+      ([k, ck]) => {
+        localStorage.removeItem(ck);
+        localStorage.setItem(
+          k,
+          JSON.stringify([
+            { d: 4828, t: 201, top: 44, at: Date.now() - 1000, why: "cafe", cup: 80 },
+            { d: 1207, t: 55, top: 40, at: Date.now(), why: "cafe", c: "sprint" },
+          ]),
+        );
+      },
+      [BOARD_KEY, COURSE_KEY],
+    );
+    const where = () =>
+      page.evaluate(() => {
+        const g = (window as any).__drive.game;
+        return { course: g.course as string, s: g.sim.s as number, left: g.sim.remaining as number, board: g.board().map((r: any) => r.t) as number[] };
+      });
+
+    await pressStart(page);
+    await stepUntil(page, "ready");
+    let at = await where();
+    expect(at.course).toBe("sprint");
+    expect(at.left / MILE).toBeCloseTo(0.75, 3);
+    expect(at.board).toEqual([55]);
+
+    // on the start line there's a button for the other course
+    const chip = page.locator(".game__course");
+    await expect(chip).toBeVisible();
+    await expect(chip).toContainText(/long way/i);
+    await chip.click({ force: true });
+    expect(await stepUntil(page, "ready")).toBe("ready");
+    at = await where();
+    expect(at.course).toBe("full");
+    expect(at.s).toBeCloseTo(14, 3);
+    expect(at.left / MILE).toBeCloseTo(3, 3);
+    expect(at.board).toEqual([201]); // the old three-mile record lives here
+    await expect(page.locator(".game__stat--dist b")).toHaveText("3.00");
+    await expect(chip).toContainText(/sprint/i);
+    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "null"), COURSE_KEY)).toBe("full");
+
+    // three miles by the pace notes still ends at the café, in about three minutes
+    const drive = await page.evaluate(() => {
+      const d = (window as any).__drive;
+      const g = d.game;
+      let frames = 0;
+      while (frames < 60 * 400 && (g.state === "ready" || g.state === "run")) {
+        const la = g.sim.lookahead();
+        g.keys.clear();
+        g.keys.add(g.sim.v > la.allow * 0.93 ? "brake" : "gas");
+        d.engine.step(1 / 60);
+        frames++;
+      }
+      g.keys.clear();
+      return { state: g.state as string, miles: g.sim.distance / 1609.344, seconds: g.sim.time as number };
+    });
+    expect(drive.state).toBe("arrive");
+    expect(drive.miles).toBeCloseTo(3, 2);
+    expect(drive.seconds).toBeGreaterThan(150);
+    expect(drive.seconds).toBeLessThan(240);
+
+    // the choice survives a reload, and C on the start line swaps back
+    await page.reload();
+    await page.waitForFunction(() => (window as any).__drive && document.documentElement.classList.contains("drive-ready"));
+    await pressStart(page);
+    await stepUntil(page, "ready");
+    expect((await where()).course).toBe("full");
+    await page.keyboard.press("c");
+    expect(await stepUntil(page, "ready")).toBe("ready");
+    at = await where();
+    expect(at.course).toBe("sprint");
+    expect(at.left / MILE).toBeCloseTo(0.75, 3);
+  });
+
   test("a café finish outranks any crash on the leaderboard, however far the crash got", async ({ page }) => {
     await openDrive(page);
     await page.evaluate((k) => {
       localStorage.setItem(
         k,
         JSON.stringify([
-          { d: 4700, t: 150, top: 50, at: Date.now() - 1000, why: "fell" },
-          { d: 4828, t: 230, top: 40, at: Date.now() - 500, why: "cafe", cup: 61 },
-          { d: 4828, t: 195, top: 45, at: Date.now(), why: "cafe" },
+          { d: 1150, t: 48, top: 50, at: Date.now() - 1000, why: "fell", c: "sprint" },
+          { d: 1207, t: 71, top: 40, at: Date.now() - 500, why: "cafe", cup: 61, c: "sprint" },
+          { d: 1207, t: 58, top: 45, at: Date.now(), why: "cafe", c: "sprint" },
+          { d: 4828, t: 195, top: 45, at: Date.now(), why: "cafe" }, // the long way keeps its own board
         ]),
       );
     }, BOARD_KEY);
     const order = await page.evaluate(() => (window as any).__drive.game.board().map((r: any) => `${r.why}:${r.t}`));
-    expect(order).toEqual(["cafe:195", "cafe:230", "fell:150"]);
+    expect(order).toEqual(["cafe:58", "cafe:71", "fell:48"]);
   });
 });

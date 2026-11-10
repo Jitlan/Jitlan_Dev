@@ -6,7 +6,7 @@
    car washes wide, and eventually there's no more road. Crests unload the
    tyres, dips press them in, downhill braking takes longer.
 
-   The course is three miles of this, against the stopwatch, to a café.
+   The course is a stretch of this, against the stopwatch, to a café.
 
    No DOM or rendering in here, so the model can be exercised headlessly.
    ========================================================================== */
@@ -75,6 +75,12 @@ export class Sim {
     if (gas && !this.started) this.started = true;
     this.thr = damp(this.thr, gas ? 1 : 0, 16, h);
     this.brk = damp(this.brk, brake ? 1 : 0, 22, h);
+    if (!this.started) {
+      // held on the line until the first touch of the throttle, whatever the slope
+      this.v = 0;
+      this.accel = 0;
+      return null;
+    }
 
     const v = this.v;
     const k = road.curvature(this.s);

@@ -1,7 +1,7 @@
 /* ==========================================================================
    Drive — the push-to-start game
    --------------------------------------------------------------------------
-   Press the start button on the dash and the HUD clears. Three miles of
+   Press the start button on the dash and the HUD clears. A stretch of
    winding road against the stopwatch, with two controls: go and stop
    (on a touch screen, one: hold to go, let go to stop). Run wide and the run
    is over, with a quote. Make it and the car parks itself at the café, where
@@ -12,11 +12,12 @@
 
 import { Quaternion, Vector3 } from '../vendor/three.module.min.js';
 import { Cafe } from './cafe.js';
-import { COURSE } from './road.js';
+import { COURSE, COURSES, setCourse } from './road.js';
 import { Sim } from './sim.js';
 import { IMPERIAL, UNITS, clamp, damp, fmtDist, fmtSpeed, fmtTime } from './util.js';
 
 const BOARD_KEY = 'jl-drive-board-v1';
+const COURSE_KEY = 'jl-drive-course';
 const DECK_KEY = 'jl-drive-quotes-v1';
 const BOARD_SIZE = 5;
 const H = 1 / 120;
@@ -60,7 +61,7 @@ const CUP_VERDICTS = [
   [35, 'It compiles. Barely. Still caffeine.'],
   [0, 'That’s not a cortado, that’s a stack trace in a glass.'],
 ];
-const NO_CUP_VERDICT = 'Drove three miles to a café and skipped the coffee. Bold.';
+const NO_CUP_VERDICT = 'Drove all the way to a café and skipped the coffee. Bold.';
 
 function load(key, fallback) {
   try {
@@ -106,6 +107,11 @@ function nextQuote(kind, list) {
   return list[idx];
 }
 
+/** "0.75 mi", "3 mi", "1.21 km": a course's length the way the HUD writes distances. */
+const lengthText = (m) => `${parseFloat(fmtDist(m))} ${UNITS.dist}`;
+/** Which course a saved run belongs to. Runs from before there was a choice were all the long way. */
+const courseOf = (r) => r.c || 'full';
+
 /** Anyone who reached the café outranks anyone who didn't; then fastest, or farthest. */
 const made = (r) => r.why === 'cafe';
 function byResult(a, b) {
@@ -121,6 +127,8 @@ export class Game {
   constructor(engine, hud) {
     this.engine = engine;
     this.hud = hud;
+    // the sprint unless the visitor chose the long way last time
+    setCourse(load(COURSE_KEY, null));
     this.sim = new Sim(engine.road);
     // idle → intro → boot → ready → run → crash → over
     //                                  ↘ arrive → parked → cafe → over
@@ -152,9 +160,46 @@ export class Game {
     return this.state !== 'idle';
   }
 
-  board() {
+  /** Every saved run, whichever course it was on. */
+  _runs() {
     const list = load(BOARD_KEY, []);
-    return Array.isArray(list) ? list.filter((r) => r && typeof r.d === 'number' && typeof r.t === 'number').sort(byResult) : [];
+    return Array.isArray(list) ? list.filter((r) => r && typeof r.d === 'number' && typeof r.t === 'number') : [];
+  }
+
+  /** The leaderboard for the course in play: each course keeps its own. */
+  board() {
+    return this._runs()
+      .filter((r) => courseOf(r) === COURSE.id)
+      .sort(byResult);
+  }
+
+  get course() {
+    return COURSE.id;
+  }
+
+  /** Swap between the sprint and the long way, and line up at the new start. Only between runs. */
+  switchCourse() {
+    if (this.state !== 'ready' && this.state !== 'over') return;
+    const dark = this.state === 'over';
+    save(COURSE_KEY, setCourse(COURSE.id === 'sprint' ? 'full' : 'sprint'));
+    this._courseText();
+    this.$over.hidden = true;
+    this._release();
+    this._live(false);
+    this._toast('');
+    this._setState('intro');
+    if (dark) this.t = 0.2; // the screen is already dark; skip most of the fade
+    this.$fade.style.opacity = '1';
+    this.engine.setGameView(true);
+    this.engine.fastWipers = true;
+  }
+
+  /** Label the two "other course" buttons for whichever course is in play. */
+  _courseText() {
+    const other = COURSES[COURSE.id === 'sprint' ? 'full' : 'sprint'];
+    const label = other.id === 'full' ? `Take the long way · ${lengthText(other.LENGTH)}` : `Back to the sprint · ${lengthText(other.LENGTH)}`;
+    this.$switch.firstChild.textContent = label + ' ';
+    this.$chip.firstChild.textContent = label + ' ';
   }
 
   /* ---------------------------------------------------------------- DOM */
@@ -165,7 +210,7 @@ export class Game {
       <div class="game__touch"></div>
       <div class="game__top" aria-hidden="true">
         <div class="game__stat game__stat--time"><span>TIME</span><b>0:00.0</b></div>
-        <div class="game__stat game__stat--dist"><span>CAFÉ IN &middot; ${UNITS.dist}</span><b>3.00</b></div>
+        <div class="game__stat game__stat--dist"><span>CAFÉ IN &middot; ${UNITS.dist}</span><b>${fmtDist(COURSE.LENGTH)}</b></div>
         <div class="game__stat game__stat--best"><span>BEST</span><b>&mdash;</b></div>
       </div>
       <div class="game__hud" aria-hidden="true">
@@ -175,6 +220,7 @@ export class Game {
       <div class="game__toast" role="status" aria-live="polite"></div>
       <div class="game__pedal" aria-hidden="true" data-state="idle"><b></b><span></span></div>
       <button type="button" class="game__exit">Exit <kbd>Esc</kbd></button>
+      <button type="button" class="game__course">Course <kbd>C</kbd></button>
       <div class="game__fade"></div>
       <div class="game__over" role="dialog" aria-modal="true" aria-labelledby="game-over-quote" hidden>
         <p class="game__kicker"></p>
@@ -197,6 +243,7 @@ export class Game {
         </div>
         <div class="game__actions">
           <button type="button" class="game__again">Drive again <kbd>Enter</kbd></button>
+          <button type="button" class="game__switch">Course <kbd>C</kbd></button>
           <button type="button" class="game__back">Back to the site <kbd>Esc</kbd></button>
         </div>
       </div>`;
@@ -221,6 +268,9 @@ export class Game {
     this.$over = q('.game__over');
     this.$again = q('.game__again');
     this.$back = q('.game__back');
+    this.$switch = q('.game__switch');
+    this.$chip = q('.game__course');
+    this._courseText();
 
     // the whole screen is the pedal
     const touch = (this.$touch = q('.game__touch'));
@@ -247,6 +297,11 @@ export class Game {
     q('.game__exit').addEventListener('click', () => this.exit());
     this.$again.addEventListener('click', () => this.restart());
     this.$back.addEventListener('click', () => this.exit());
+    this.$switch.addEventListener('click', () => this.switchCourse());
+    this.$chip.addEventListener('click', () => {
+      this.switchCourse();
+      this.$chip.blur(); // keys belong to the pedals
+    });
 
     this.cafe = new Cafe(root, {
       onDone: (result) => this._finish('cafe', result),
@@ -269,12 +324,19 @@ export class Game {
       this.exit();
       return;
     }
+    if (e.code === 'KeyC' && (this.state === 'ready' || this.state === 'over')) {
+      e.preventDefault();
+      this.switchCourse();
+      return;
+    }
     if (this.state === 'over') {
       if (k === 'Tab') {
-        // two buttons, one dialog: keep focus between them
+        // three buttons, one dialog: keep focus going round them
         e.preventDefault();
-        (document.activeElement === this.$again ? this.$back : this.$again).focus();
-      } else if ((k === 'Enter' || k === ' ') && document.activeElement !== this.$back) {
+        const ring = [this.$again, this.$switch, this.$back];
+        const at = ring.indexOf(document.activeElement);
+        ring[(at + (e.shiftKey ? ring.length - 1 : 1) + ring.length) % ring.length].focus();
+      } else if ((k === 'Enter' || k === ' ') && document.activeElement !== this.$back && document.activeElement !== this.$switch) {
         e.preventDefault();
         this.restart();
       }
@@ -462,8 +524,8 @@ export class Game {
           this._setState('ready');
           this._toast(
             this.touchMode
-              ? 'Touch and hold anywhere to accelerate. Let go to brake. Café in 3 miles.'
-              : 'Hold W, ↑ or Space to go; S or ↓ brakes — or hold the mouse button and let go to brake. Café in 3 miles.',
+              ? `Touch and hold anywhere to accelerate. Let go to brake. Café in ${lengthText(COURSE.LENGTH)}.`
+              : `Hold W, ↑ or Space to go; S or ↓ brakes — or hold the mouse button and let go to brake. Café in ${lengthText(COURSE.LENGTH)}.`,
           );
         }
         return;
@@ -722,6 +784,7 @@ export class Game {
       top: Math.round(sim.top * 100) / 100,
       at: Date.now(),
       why: reason,
+      c: COURSE.id,
     };
     if (arrived && cup) run.cup = cup.total;
     const board = this.board();
@@ -732,7 +795,8 @@ export class Game {
       board.sort(byResult);
       board.length = Math.min(board.length, BOARD_SIZE);
       rank = board.indexOf(run);
-      save(BOARD_KEY, board);
+      // each course keeps its own top five; leave the other course's alone
+      save(BOARD_KEY, this._runs().filter((r) => courseOf(r) !== COURSE.id).concat(board));
     }
     const record = rank === 0 && (!prev || byResult(run, prev) < 0);
 
@@ -747,7 +811,7 @@ export class Game {
     const avg = run.t > 0.5 ? run.d / run.t : 0;
     const badge = record ? ' <span class="game__record">New personal best</span>' : rank > 0 ? ` <span class="game__record game__record--minor">#${rank + 1} on your board</span>` : '';
     q('.game__summary').innerHTML = arrived
-      ? `Three miles in <b>${fmtTime(run.t)}</b>, and the car is still green side up.${badge}`
+      ? `${lengthText(COURSE.LENGTH)} in <b>${fmtTime(run.t)}</b>, and the car is still green side up.${badge}`
       : `You made it <b>${fmtDist(run.d)} ${UNITS.dist}</b> in <b>${fmtTime(run.t)}</b>. The café was another ${fmtDist(sim.remaining)} ${UNITS.dist}.${badge}`;
 
     const $cup = q('.game__cup');
@@ -774,6 +838,7 @@ export class Game {
       `<div><dt>Top speed</dt><dd>${fmtSpeed(run.top)}<i>${UNITS.speed}</i></dd></div>` +
       (arrived ? `<div><dt>Cortado</dt><dd>${cup ? cup.total + '<i>/100</i>' : '—'}</dd></div>` : '');
 
+    q('.game__board-wrap h3').textContent = `Your leaderboard · ${COURSE.id === 'sprint' ? 'sprint' : 'the long way'}, ${lengthText(COURSE.LENGTH)}`;
     const body = q('.game__board tbody');
     body.innerHTML = board.length
       ? board

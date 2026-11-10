@@ -26,8 +26,11 @@ drive view.
 
 Click the **ENGINE START** button on the dash (left of the wheel) to play.
 
-**The drive.** Three miles of winding road against the stopwatch, about three minutes if
-you're tidy. The car steers itself; all you control is speed:
+**The drive.** A winding mountain road against the stopwatch. By default it's a sprint:
+the last three-quarters of a mile to the café, about a minute if you're tidy. The long way,
+all three miles (about three minutes), is one click away on the start line or the result
+card, or press `C`; the choice is remembered. The car steers itself; all you control is
+speed:
 
 - keyboard: `W` / `↑` / `Space` to accelerate, `S` / `↓` to brake
 - touch (or mouse): hold anywhere on the screen to accelerate, let go to brake
@@ -42,8 +45,8 @@ then free-pour the latte art onto the cortado. Each station is "hold, then let g
 right moment"; the pour is a small fluid simulation, so the art is whatever you drew.
 
 Every run's distance or finish time, average speed and cortado score are cached in
-`localStorage` (`jl-drive-board-v1`) and shown as a personal top-five leaderboard. A
-café finish always outranks a crash; finishes rank by time, crashes by distance.
+`localStorage` (`jl-drive-board-v1`) and shown as a personal top-five leaderboard, one per
+course. A café finish always outranks a crash; finishes rank by time, crashes by distance.
 
 ## Layout
 
@@ -77,8 +80,8 @@ Things you're most likely to tweak:
 
 - **HUD copy** comes straight from `index.html`; panel titles are in `TITLES` in `hud.js`.
 - **Loss quotes** are `FALL_QUOTES` / `TIME_QUOTES` at the top of `game.js`.
-- **Game feel** (grip, braking, power) is `TUNE` in `sim.js`; the course length and where
-  the café sits are `COURSE` in `road.js`, and how twisty the road is lives in
+- **Game feel** (grip, braking, power) is `TUNE` in `sim.js`; the two courses are
+  `COURSES` in `road.js` and where the café sits is `COURSE` there, and how twisty the road is lives in
   `Road._plan()` there.
 - **Coffee targets** (dose, yield, shot time, milk temperature) are `TARGET` in `cafe.js`;
   the café's verdicts are `CUP_VERDICTS` in `game.js`.

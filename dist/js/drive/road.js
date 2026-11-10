@@ -16,17 +16,26 @@ export const ROAD = {
 };
 
 /**
- * The game's course: three miles from the start line to the finish, then a
- * short run-off to the café's gravel lot where the car is parked for you.
- * Around the café the road runs dead straight and level, with the mountain
- * on the café's side and the view on the other.
+ * The game's courses. Both end at the same finish line and the same café; the
+ * sprint is simply the last three-quarters of a mile of the long way, which a
+ * tidy driver covers in about a minute (it starts on a straight). Beyond the
+ * line there's a short run-off to the café's gravel lot, where the car is
+ * parked for you. Around the café the road runs dead straight and level, with
+ * the mountain on the café's side and the view on the other.
  */
 const MILE = 1609.344;
-const START_S = 14;
-const FINISH_S = START_S + 3 * MILE;
+const FINISH_S = 14 + 3 * MILE;
+export const COURSES = {
+  sprint: { id: 'sprint', START_S: FINISH_S - 0.75 * MILE, LENGTH: 0.75 * MILE },
+  full: { id: 'full', START_S: 14, LENGTH: 3 * MILE },
+};
+export const DEFAULT_COURSE = 'sprint';
+
+/** The course in play. START_S and LENGTH follow setCourse(); everything about the café is fixed. */
 export const COURSE = {
-  START_S,
-  LENGTH: 3 * MILE,
+  id: DEFAULT_COURSE,
+  START_S: COURSES[DEFAULT_COURSE].START_S,
+  LENGTH: COURSES[DEFAULT_COURSE].LENGTH,
   FINISH_S,
   STOP_S: FINISH_S + 190, // where the car comes to rest
   LOT_FROM: FINISH_S + 190 - 52, // extent of the gravel lot along the road
@@ -38,6 +47,15 @@ export const COURSE = {
   PARK_RUN: 46, // distance over which the car swings in
   PARK_CURVE: 2.6, // exponent of the swing-in path
 };
+
+/** Choose which course the game runs: 'sprint' or 'full'. Returns the id actually in play. */
+export function setCourse(id) {
+  const c = COURSES[id] || COURSES[DEFAULT_COURSE];
+  COURSE.id = c.id;
+  COURSE.START_S = c.START_S;
+  COURSE.LENGTH = c.LENGTH;
+  return c.id;
+}
 
 const DS = ROAD.DS;
 const SMOOTH = 7; // box-filter half width (samples) — turns arcs into eased transitions
