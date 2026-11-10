@@ -1,8 +1,7 @@
-great-vibes-jl.woff2 is a two-glyph subset ("J" and "L") of Great Vibes,
+italianno-jl.woff2 is a two-glyph subset ("J" and "L") of Italianno,
 used for the monogram on the steering wheel.
 
-Copyright (c) 2012, TypeSETit, LLC (typesetit@att.net),
-with Reserved Font Name "Great Vibes".
+Copyright 2009 The Italianno Project Authors (https://github.com/googlefonts/italianno)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 The license is available with a FAQ at: https://openfontlicense.org

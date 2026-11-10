@@ -66,7 +66,7 @@ dist/
     cafe.js             espresso stations and the latte-art pour
     util.js             math, noise, units
   js/vendor/            three.js r185 (MIT), vendored as-is from npm
-  assets/fonts/         "JL" in Great Vibes (OFL), for the badge on the steering wheel
+  assets/fonts/         "JL" in Italianno (OFL), for the badge on the steering wheel
 ```
 
 To update three.js, copy `build/three.module.min.js` and `build/three.core.min.js`

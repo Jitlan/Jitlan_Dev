@@ -157,7 +157,7 @@ function dialTexture(opt) {
 
 /**
  * The wheel-hub badge: a cursive "JL" in gold on dark green enamel.
- * The script face is a two-glyph subset shipped with the site; until it has
+ * The script face is Italianno, shipped as a two-glyph subset; until it has
  * loaded (or if it can't) the badge falls back to an italic serif.
  */
 function crestTexture() {
@@ -205,7 +205,7 @@ function crestTexture() {
     const y = S / 2 + h / 2 - m.actualBoundingBoxDescent;
     g.fillStyle = gold();
     g.strokeStyle = gold();
-    g.lineWidth = 3; // a touch of weight so the hairlines survive at badge size
+    g.lineWidth = 2.4; // a touch of weight so the hairlines survive at badge size
     g.lineJoin = 'round';
     g.strokeText('JL', x, y);
     g.fillText('JL', x, y);
@@ -215,12 +215,12 @@ function crestTexture() {
   const fallback = () => draw('italic 118px Georgia, "Times New Roman", serif');
   fallback();
   try {
-    const face = new FontFace('JL Script', 'url(assets/fonts/great-vibes-jl.woff2)');
+    const face = new FontFace('JL Script', 'url(assets/fonts/italianno-jl.woff2)');
     face
       .load()
       .then((f) => {
         document.fonts.add(f);
-        draw('132px "JL Script"');
+        draw('180px "JL Script"');
       })
       .catch(fallback);
   } catch (e) {
