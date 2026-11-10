@@ -78,6 +78,17 @@ export function softMin(a, b) {
   return (a * b) / Math.pow(Math.pow(a, p) + Math.pow(b, p), 1 / p);
 }
 
+/** Rounded-rectangle path (ctx.roundRect isn't in every browser that can run the scene). */
+export function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
 /** Speeds are simulated in m/s; the UI follows the visitor's locale. */
 export const IMPERIAL = (() => {
   try {

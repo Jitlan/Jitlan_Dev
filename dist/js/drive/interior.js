@@ -30,7 +30,7 @@ import {
   TorusGeometry,
   Vector3,
 } from '../vendor/three.module.min.js';
-import { IMPERIAL, TAU, UNITS, clamp, lerp, mulberry32 } from './util.js';
+import { IMPERIAL, TAU, UNITS, clamp, lerp, mulberry32, roundRect } from './util.js';
 
 export const CAR_CENTER_X = 0.36;
 
@@ -155,35 +155,77 @@ function dialTexture(opt) {
   return t;
 }
 
+/**
+ * The wheel-hub badge: a cursive "JL" in gold on dark green enamel.
+ * The script face is a two-glyph subset shipped with the site; until it has
+ * loaded (or if it can't) the badge falls back to an italic serif.
+ */
 function crestTexture() {
-  const c = canvas(128, 160);
+  const S = 256;
+  const c = canvas(S, S);
   const g = c.getContext('2d');
-  const shield = () => {
-    g.beginPath();
-    g.moveTo(10, 10);
-    g.lineTo(118, 10);
-    g.lineTo(118, 86);
-    g.quadraticCurveTo(118, 132, 64, 152);
-    g.quadraticCurveTo(10, 132, 10, 86);
-    g.closePath();
-  };
-  shield();
-  const grad = g.createLinearGradient(0, 0, 128, 160);
-  grad.addColorStop(0, '#e6c36a');
-  grad.addColorStop(0.5, '#b88a2c');
-  grad.addColorStop(1, '#8a6218');
-  g.fillStyle = grad;
-  g.fill();
-  g.lineWidth = 6;
-  g.strokeStyle = '#2a1d0c';
-  g.stroke();
-  g.fillStyle = '#20160a';
-  g.font = '800 62px Inter, Helvetica, Arial, sans-serif';
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText('JL', 64, 74);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 8;
+
+  const gold = () => {
+    const grad = g.createLinearGradient(40, 30, 216, 226);
+    grad.addColorStop(0, '#f1d58a');
+    grad.addColorStop(0.5, '#c9a044');
+    grad.addColorStop(1, '#8f6a1f');
+    return grad;
+  };
+  const draw = (font) => {
+    g.clearRect(0, 0, S, S);
+    g.fillStyle = gold();
+    g.beginPath();
+    g.arc(S / 2, S / 2, 126, 0, TAU);
+    g.fill();
+    const enamel = g.createRadialGradient(S / 2 - 30, S / 2 - 40, 10, S / 2, S / 2, 116);
+    enamel.addColorStop(0, '#143524');
+    enamel.addColorStop(1, '#06140d');
+    g.fillStyle = enamel;
+    g.beginPath();
+    g.arc(S / 2, S / 2, 113, 0, TAU);
+    g.fill();
+    g.strokeStyle = gold();
+    g.lineWidth = 2.5;
+    g.beginPath();
+    g.arc(S / 2, S / 2, 103, 0, TAU);
+    g.stroke();
+
+    g.font = font;
+    g.textAlign = 'left';
+    g.textBaseline = 'alphabetic';
+    const m = g.measureText('JL');
+    // centre on the ink, not the advance box: script capitals swing well outside it
+    const w = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+    const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    const x = S / 2 - w / 2 + m.actualBoundingBoxLeft;
+    const y = S / 2 + h / 2 - m.actualBoundingBoxDescent;
+    g.fillStyle = gold();
+    g.strokeStyle = gold();
+    g.lineWidth = 3; // a touch of weight so the hairlines survive at badge size
+    g.lineJoin = 'round';
+    g.strokeText('JL', x, y);
+    g.fillText('JL', x, y);
+    t.needsUpdate = true;
+  };
+
+  const fallback = () => draw('italic 118px Georgia, "Times New Roman", serif');
+  fallback();
+  try {
+    const face = new FontFace('JL Script', 'url(assets/fonts/great-vibes-jl.woff2)');
+    face
+      .load()
+      .then((f) => {
+        document.fonts.add(f);
+        draw('132px "JL Script"');
+      })
+      .catch(fallback);
+  } catch (e) {
+    /* no FontFace API: the serif stays */
+  }
   return t;
 }
 
@@ -224,7 +266,7 @@ function mirrorTexture() {
   grad.addColorStop(1, '#5d6468');
   g.fillStyle = grad;
   g.beginPath();
-  g.roundRect(52, 16, 152, 40, 10);
+  roundRect(g, 52, 16, 152, 40, 10);
   g.fill();
   const rand = mulberry32(7);
   const tints = ['#b4581d', '#c78a22', '#8b2e19', '#31482f'];
@@ -244,8 +286,8 @@ function mirrorTexture() {
   // headrests
   g.fillStyle = '#231710';
   g.beginPath();
-  g.roundRect(70, 38, 34, 42, 8);
-  g.roundRect(152, 38, 34, 42, 8);
+  roundRect(g, 70, 38, 34, 42, 8);
+  roundRect(g, 152, 38, 34, 42, 8);
   g.fill();
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
@@ -348,14 +390,15 @@ export class Interior {
     const stitchTex = stitchTexture();
 
     const mat = (this.mat = {
-      leather: new MeshStandardMaterial({ color: '#4b2a17', roughness: 0.56, bumpMap: grain, bumpScale: 0.9, side: DoubleSide }),
-      leatherDark: new MeshStandardMaterial({ color: '#331c10', roughness: 0.64, bumpMap: grain, bumpScale: 0.9, side: DoubleSide }),
+      // leather is matt: high roughness and almost no pick-up from the sky
+      leather: new MeshStandardMaterial({ color: '#432414', roughness: 0.95, envMapIntensity: 0.1, bumpMap: grain, bumpScale: 0.6, side: DoubleSide }),
+      leatherDark: new MeshStandardMaterial({ color: '#2d190e', roughness: 0.97, envMapIntensity: 0.08, bumpMap: grain, bumpScale: 0.6, side: DoubleSide }),
       suede: new MeshStandardMaterial({ color: '#21150e', roughness: 0.96, side: DoubleSide }),
-      satin: new MeshStandardMaterial({ color: '#17171a', roughness: 0.42, metalness: 0.35 }),
-      alu: new MeshStandardMaterial({ color: '#c3c6c9', roughness: 0.3, metalness: 1 }),
-      aluDark: new MeshStandardMaterial({ color: '#6f7377', roughness: 0.38, metalness: 1 }),
+      satin: new MeshStandardMaterial({ color: '#17171a', roughness: 0.6, metalness: 0.3, envMapIntensity: 0.4 }),
+      alu: new MeshStandardMaterial({ color: '#aeb2b6', roughness: 0.44, metalness: 1, envMapIntensity: 0.65 }),
+      aluDark: new MeshStandardMaterial({ color: '#63676b', roughness: 0.52, metalness: 1, envMapIntensity: 0.6 }),
       black: new MeshStandardMaterial({ color: '#0d0d0f', roughness: 0.55, side: DoubleSide }),
-      gloss: new MeshStandardMaterial({ color: '#050506', roughness: 0.12, metalness: 0.2 }),
+      gloss: new MeshStandardMaterial({ color: '#050506', roughness: 0.3, metalness: 0.2, envMapIntensity: 0.4 }),
       rubber: new MeshStandardMaterial({ color: '#060607', roughness: 0.8 }),
       stitch: new MeshStandardMaterial({ color: '#dcc79c', roughness: 0.8, map: stitchTex, alphaTest: 0.5, side: DoubleSide }),
       cream: new MeshStandardMaterial({ color: '#d9c7a0', roughness: 0.6 }),
@@ -363,9 +406,9 @@ export class Interior {
       ambientLine: new MeshBasicMaterial({ color: '#ff9a3c' }),
     });
 
-    this.hemi = new HemisphereLight('#d5dde3', '#2a1c14', 1.15);
+    this.hemi = new HemisphereLight('#d0d7dc', '#22160f', 1.0);
     this.scene.add(this.hemi);
-    this.key = new DirectionalLight('#eef3f6', 2.7);
+    this.key = new DirectionalLight('#eef3f6', 2.0);
     this.key.position.set(0.15, 1.0, -1.25); // daylight pouring through the glass
     this.scene.add(this.key);
     this.glow = new PointLight('#ffb070', 0, 0.9, 2);
@@ -598,7 +641,7 @@ export class Interior {
     g.clearRect(0, 0, 256, 96);
     g.fillStyle = 'rgba(14,12,10,0.92)';
     g.beginPath();
-    g.roundRect(4, 4, 248, 88, 14);
+    roundRect(g, 4, 4, 248, 88, 14);
     g.fill();
     g.fillStyle = '#f4efe4';
     g.textBaseline = 'middle';
@@ -666,8 +709,8 @@ export class Interior {
     hubRing.position.z = 0.021;
     wheel.add(hubRing);
     const crest = new Mesh(
-      new PlaneGeometry(0.03, 0.0375),
-      new MeshStandardMaterial({ map: crestTexture(), transparent: true, roughness: 0.35, metalness: 0.6 }),
+      new CircleGeometry(0.0235, 48),
+      new MeshStandardMaterial({ map: crestTexture(), roughness: 0.5, metalness: 0.35, envMapIntensity: 0.5 }),
     );
     crest.position.z = 0.0215;
     wheel.add(crest);
@@ -849,8 +892,8 @@ export class Interior {
 
   setNight(t) {
     this.night = t;
-    this.hemi.intensity = lerp(1.15, 0.12, t);
-    this.key.intensity = lerp(2.7, 0.06, t);
+    this.hemi.intensity = lerp(1.0, 0.12, t);
+    this.key.intensity = lerp(2.0, 0.06, t);
     this.scene.environmentIntensity = lerp(1.0, 0.1, t);
     this.glow.intensity = lerp(0, 0.05, t);
     const face = lerp(0.82, 1.0, t);
@@ -895,7 +938,8 @@ export class Interior {
    ========================================================================== */
 export function buildExterior() {
   const group = new Group();
-  const paint = new MeshStandardMaterial({ color: '#1b4a30', roughness: 0.3, metalness: 0.7 });
+  // a deep, dark green; mostly a body colour with a soft sheen rather than a mirror
+  const paint = new MeshStandardMaterial({ color: '#0c2f1d', roughness: 0.56, metalness: 0.25, envMapIntensity: 0.24 });
   const NX = 34;
   const NZ = 22;
   const hood = surface(

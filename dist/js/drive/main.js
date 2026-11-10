@@ -85,17 +85,23 @@ async function boot() {
       startBtn.firstElementChild.textContent = 'Push to start';
     };
 
+    let startKey = '';
     engine.onLayout = (L) => {
       hud.layout(L);
       game.layout(engine.layout(true));
     };
     engine.onFrame = () => {
       hud.frameSync();
+      // whole pixels, and only when it has actually moved: the 3D button shivers with the road
       const s = engine.startScreen;
-      const size = Math.max(44, s.r * 2.1);
-      startBtn.style.width = startBtn.style.height = size.toFixed(1) + 'px';
-      startBtn.style.transform = `translate3d(${(s.x - size / 2).toFixed(1)}px,${(s.y - size / 2).toFixed(1)}px,0)`;
-      startBtn.style.visibility = s.visible ? 'visible' : 'hidden';
+      const size = Math.round(Math.max(44, s.r * 2.1));
+      const key = `${Math.round(s.x - size / 2)},${Math.round(s.y - size / 2)},${size},${s.visible}`;
+      if (key !== startKey) {
+        startKey = key;
+        startBtn.style.width = startBtn.style.height = size + 'px';
+        startBtn.style.transform = `translate3d(${Math.round(s.x - size / 2)}px,${Math.round(s.y - size / 2)}px,0)`;
+        startBtn.style.visibility = s.visible ? 'visible' : 'hidden';
+      }
     };
 
     // light theme = overcast afternoon, dark theme = the same road at night

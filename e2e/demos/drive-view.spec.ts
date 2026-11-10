@@ -35,6 +35,17 @@ async function stepUntil(page: Page, state: string, maxFrames = 4000) {
   );
 }
 
+/**
+ * The start button is a real <button> that rides on the 3D one, so it drifts
+ * with the camera whenever the road bends. Click it where it is rather than
+ * waiting for it to hold still.
+ */
+async function pressStart(page: Page) {
+  const start = page.getByRole("button", { name: /engine start/i });
+  await expect(start).toBeVisible();
+  await start.click({ force: true });
+}
+
 test.describe("drive view", () => {
   test("is the default: 3D canvas behind, hero content on the windshield HUD", async ({ page }) => {
     await openDrive(page);
@@ -44,6 +55,9 @@ test.describe("drive view", () => {
     await expect(page.locator(".hud__title")).toHaveText("DRIVER");
     await expect(page.locator(".hud__idx")).toHaveText("01/06");
     await expect(page.getByRole("heading", { level: 1, name: "Jordan Liebling" })).toBeVisible();
+    // no photo of the owner anywhere on the page
+    await expect(page.locator("#hero img")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.innerHTML.includes("IMG_"))).toBe(false);
 
     // The scene is actually drawing: the centre of the canvas isn't one flat colour.
     const varied = await page.evaluate(() => {
@@ -138,14 +152,12 @@ test.describe("drive view", () => {
 test.describe("push-to-start game", () => {
   test("the start button on the dash starts the game; Escape hands the site back", async ({ page }) => {
     await openDrive(page);
-    const start = page.getByRole("button", { name: /engine start/i });
-    await expect(start).toBeVisible();
-    await start.click();
+    await pressStart(page);
     await expect(page.locator("html")).toHaveClass(/is-gaming/);
     expect(await stepUntil(page, "ready")).toBe("ready");
     await expect(page.locator(".game__speed b")).toHaveText("0");
-    await expect(page.getByRole("button", { name: "Accelerate" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Brake" })).toBeVisible();
+    await expect(page.locator(".game__stat--dist b")).toHaveText("3.00"); // three miles to the café
+    await expect(page.locator(".game__pedal")).toBeVisible();
 
     await page.keyboard.press("Escape");
     await expect(page.locator("html")).not.toHaveClass(/is-gaming/);
@@ -153,9 +165,9 @@ test.describe("push-to-start game", () => {
     await expect(page.locator(".hud-panel.is-active")).toHaveCount(1);
   });
 
-  test("throttle and brake are the only controls, and they work", async ({ page }) => {
+  test("keyboard: throttle and brake are the only controls, and they work", async ({ page }) => {
     await openDrive(page);
-    await page.getByRole("button", { name: /engine start/i }).click();
+    await pressStart(page);
     await stepUntil(page, "ready");
     const speed = () => page.evaluate(() => (window as any).__drive.game.sim.v as number);
     const step = (n: number) =>
@@ -177,10 +189,35 @@ test.describe("push-to-start game", () => {
     expect(await page.evaluate(() => (window as any).__drive.game.state)).toBe("run");
   });
 
+  test("touch: holding anywhere on the screen accelerates, letting go brakes", async ({ page }) => {
+    await openDrive(page);
+    await pressStart(page);
+    await stepUntil(page, "ready");
+    const speed = () => page.evaluate(() => (window as any).__drive.game.sim.v as number);
+    const step = (n: number) =>
+      page.evaluate((n) => {
+        const d = (window as any).__drive;
+        for (let i = 0; i < n; i++) d.engine.step(1 / 60);
+      }, n);
+
+    // press and hold in the middle of the glass: no pedal to aim for
+    await page.mouse.move(640, 300);
+    await page.mouse.down();
+    await step(120);
+    const fast = await speed();
+    expect(fast).toBeGreaterThan(8);
+    await expect(page.locator(".game__pedal")).toHaveAttribute("data-state", "gas");
+
+    await page.mouse.up();
+    await step(60);
+    expect(await speed()).toBeLessThan(fast - 5);
+    await expect(page.locator(".game__pedal")).toHaveAttribute("data-state", "brake");
+  });
+
   test("falling off the road ends the run with a quote, and the run is cached on the leaderboard", async ({ page }) => {
     await openDrive(page);
     await page.evaluate((k) => localStorage.removeItem(k), BOARD_KEY);
-    await page.getByRole("button", { name: /engine start/i }).click();
+    await pressStart(page);
     await stepUntil(page, "ready");
 
     // Flat out with no braking: the first real bend throws the car off.
@@ -188,7 +225,7 @@ test.describe("push-to-start game", () => {
     expect(await stepUntil(page, "over")).toBe("over");
     await page.keyboard.up("KeyW");
 
-    const dialog = page.getByRole("dialog");
+    const dialog = page.locator(".game__over");
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(".game__kicker")).toHaveText("OFF THE ROAD");
     const firstQuote = (await dialog.locator(".game__quote").textContent())!.trim();
@@ -199,6 +236,7 @@ test.describe("push-to-start game", () => {
 
     const board = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "[]"), BOARD_KEY);
     expect(board).toHaveLength(1);
+    expect(board[0].why).toBe("fell");
     expect(board[0].d).toBeGreaterThan(50); // metres
     expect(board[0].t).toBeGreaterThan(1); // seconds
     expect(board[0].top).toBeGreaterThan(20); // m/s
@@ -221,28 +259,122 @@ test.describe("push-to-start game", () => {
     expect(again).toHaveLength(2);
   });
 
-  test("a driver who brakes for the bends gets well past the first one", async ({ page }) => {
+  test("three miles of braking for the bends ends parked at the café, with a cortado to make", async ({ page }) => {
+    test.setTimeout(180_000);
     await openDrive(page);
-    await page.getByRole("button", { name: /engine start/i }).click();
+    await page.evaluate((k) => localStorage.removeItem(k), BOARD_KEY);
+    await pressStart(page);
     await stepUntil(page, "ready");
-    // Follow the HUD's own pace note: brake when it says so, otherwise go.
-    const result = await page.evaluate(() => {
+
+    // Drive by the HUD's own pace note: hold the throttle unless it says brake.
+    const drive = await page.evaluate(() => {
       const d = (window as any).__drive;
       const g = d.game;
       let frames = 0;
-      while (frames < 60 * 45 && (g.state === "ready" || g.state === "run")) {
+      while (frames < 60 * 400 && (g.state === "ready" || g.state === "run")) {
         const la = g.sim.lookahead();
-        const brake = g.sim.v > la.allow * 0.97;
         g.keys.clear();
-        g.keys.add(brake ? "brake" : "gas");
+        g.keys.add(g.sim.v > la.allow * 0.93 ? "brake" : "gas");
         d.engine.step(1 / 60);
         frames++;
       }
       g.keys.clear();
-      return { state: g.state as string, metres: g.sim.distance as number, checkpoints: g.sim.checkpoints as number };
+      return { state: g.state as string, miles: g.sim.distance / 1609.344, seconds: g.sim.time as number };
     });
-    expect(result.state).toBe("run"); // still on the road after 45 simulated seconds
-    expect(result.metres).toBeGreaterThan(1000);
-    expect(result.checkpoints).toBeGreaterThanOrEqual(2);
+    expect(drive.state).toBe("arrive"); // crossed the line without leaving the road
+    expect(drive.miles).toBeCloseTo(3, 2);
+    expect(drive.seconds).toBeGreaterThan(150); // "about three minutes"
+    expect(drive.seconds).toBeLessThan(240);
+
+    // The car brings itself into the lot and stops nose-in at the building.
+    expect(await stepUntil(page, "parked", 3000)).toBe("parked");
+    const parked = await page.evaluate(() => {
+      const c = (window as any).__drive.engine.car;
+      return { v: c.v as number, off: c.off as number, yaw: c.yaw as number };
+    });
+    expect(parked.v).toBe(0);
+    expect(parked.off).toBeGreaterThan(6); // well off the asphalt
+    expect(parked.yaw).toBeGreaterThan(0.3); // turned in toward the café
+
+    // Then the espresso bar: five stations, each "hold, then let go".
+    expect(await stepUntil(page, "cafe", 600)).toBe("cafe");
+    const cafe = page.locator(".cafe");
+    await expect(cafe).toBeVisible();
+    const hold = (seconds: number) =>
+      page.evaluate((seconds) => {
+        const d = (window as any).__drive;
+        const c = d.game.cafe;
+        const stage = c.stage;
+        c.keyHold = true;
+        for (let t = 0; t < seconds && c.stage === stage && c.phase === "play"; t += 1 / 60) d.engine.step(1 / 60);
+        c.keyHold = false;
+        for (let n = 0; n < 300 && c.active && c.stage === stage; n++) d.engine.step(1 / 60);
+        return c.active ? (c.stage as number) : -1;
+      }, seconds);
+    await expect(cafe.locator(".cafe__title")).toHaveText("Grind");
+    expect(await hold(3.33)).toBe(1); // 18 g
+    await expect(cafe.locator(".cafe__title")).toHaveText("Tamp");
+    expect(await hold(0.92)).toBe(2); // 30 lb
+    await expect(cafe.locator(".cafe__title")).toHaveText("Pull the shot");
+    expect(await hold(6.25)).toBe(3); // 36 g in ~27 s
+    await expect(cafe.locator(".cafe__title")).toHaveText("Steam the milk");
+    expect(await hold(4.2)).toBe(4); // just shy of 140°F
+    await expect(cafe.locator(".cafe__title")).toHaveText("Pour the cortado");
+    await expect(cafe.locator(".cafe__chips li")).toHaveCount(4);
+
+    // The pour: milk into the middle of the glass until it's full leaves real latte art behind.
+    const art = await page.evaluate(() => {
+      const d = (window as any).__drive;
+      const c = d.game.cafe;
+      const cup = c._cup();
+      c.pointer.x = cup.x;
+      c.pointer.y = cup.y;
+      c.pointer.seen = true;
+      c.hold = true;
+      for (let n = 0; n < 600 && c.stage === 4 && c.phase === "play"; n++) d.engine.step(1 / 60);
+      c.hold = false;
+      const foam: Float32Array = c.pour.foam;
+      let white = 0;
+      for (let i = 0; i < foam.length; i++) if (foam[i] > 0.5) white++;
+      return { white: white / foam.length, score: c.scores.art as number };
+    });
+    expect(art.white).toBeGreaterThan(0.08); // a visible blob of microfoam…
+    expect(art.white).toBeLessThan(0.7); // …sitting in crema, not a glass of milk
+    expect(art.score).toBeGreaterThan(0.5);
+
+    // Result: the arrival card, with the drive time and the cortado score, saved to the board.
+    expect(await stepUntil(page, "over", 600)).toBe("over");
+    const dialog = page.locator(".game__over");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(".game__kicker")).toContainText("ARRIVED");
+    await expect(dialog.locator(".game__cup")).toBeVisible();
+    await expect(dialog.locator(".game__cup-img")).toHaveJSProperty("complete", true);
+    await expect(dialog.locator(".game__board tbody tr").first()).toContainText("Café");
+    const board = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "[]"), BOARD_KEY);
+    expect(board).toHaveLength(1);
+    expect(board[0].why).toBe("cafe");
+    expect(board[0].t).toBeCloseTo(drive.seconds, 0);
+    expect(board[0].cup).toBeGreaterThan(70);
+
+    // Back to the site: the car pulls out of the lot and the HUD returns.
+    await dialog.getByRole("button", { name: /back to the site/i }).click();
+    await expect(page.locator("html")).not.toHaveClass(/is-gaming/);
+    await expect(page.locator(".hud-panel.is-active")).toHaveCount(1);
+  });
+
+  test("a café finish outranks any crash on the leaderboard, however far the crash got", async ({ page }) => {
+    await openDrive(page);
+    await page.evaluate((k) => {
+      localStorage.setItem(
+        k,
+        JSON.stringify([
+          { d: 4700, t: 150, top: 50, at: Date.now() - 1000, why: "fell" },
+          { d: 4828, t: 230, top: 40, at: Date.now() - 500, why: "cafe", cup: 61 },
+          { d: 4828, t: 195, top: 45, at: Date.now(), why: "cafe" },
+        ]),
+      );
+    }, BOARD_KEY);
+    const order = await page.evaluate(() => (window as any).__drive.game.board().map((r: any) => `${r.why}:${r.t}`));
+    expect(order).toEqual(["cafe:195", "cafe:230", "fell:150"]);
   });
 });

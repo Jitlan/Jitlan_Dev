@@ -24,12 +24,26 @@ drive view.
 
 ### The easter egg
 
-Click the **ENGINE START** button on the dash (left of the wheel) to play. The car steers
-itself; you have a throttle (`W` / `↑` / `Space`, or the on-screen pedal) and a brake
-(`S` / `↓`). Carry too much speed into a bend and the car slides wide and leaves the
-road, which ends the run with a quote that changes every time. Checkpoints every 500 m
-add time to the clock. Each run's distance, time, average and top speed are cached in
-`localStorage` (`jl-drive-board-v1`) and shown as a personal top-five leaderboard.
+Click the **ENGINE START** button on the dash (left of the wheel) to play.
+
+**The drive.** Three miles of winding road against the stopwatch, about three minutes if
+you're tidy. The car steers itself; all you control is speed:
+
+- keyboard: `W` / `↑` / `Space` to accelerate, `S` / `↓` to brake
+- touch (or mouse): hold anywhere on the screen to accelerate, let go to brake
+
+Carry too much speed into a bend and the car slides wide and leaves the road, which ends
+the run with a quote that changes every time and puts you back on the start line. The HUD
+calls the next bend and flashes **BRAKE** when it's time.
+
+**The café.** Cross the line and the car parks itself at Cortado Pass Café, where there's
+a drink to make: grind 18 g, tamp, pull 36 g in about 27 seconds, steam the milk to 140°F,
+then free-pour the latte art onto the cortado. Each station is "hold, then let go at the
+right moment"; the pour is a small fluid simulation, so the art is whatever you drew.
+
+Every run's distance or finish time, average speed and cortado score are cached in
+`localStorage` (`jl-drive-board-v1`) and shown as a personal top-five leaderboard. A
+café finish always outranks a crash; finishes rank by time, crashes by distance.
 
 ## Layout
 
@@ -47,10 +61,12 @@ dist/
     interior.js         cabin, gauges, wheel, wipers, bonnet
     glass.js            rain-on-windshield shader, wiper timing
     hud.js              scroll → HUD panels, speed cluster, waypoint nav
-    game.js             push-to-start game: UI, quotes, leaderboard
-    sim.js              game physics (no DOM; can be run headlessly)
+    game.js             push-to-start game: controls, arrival, quotes, leaderboard
+    sim.js              driving physics (no DOM; can be run headlessly)
+    cafe.js             espresso stations and the latte-art pour
     util.js             math, noise, units
   js/vendor/            three.js r185 (MIT), vendored as-is from npm
+  assets/fonts/         "JL" in Great Vibes (OFL), for the badge on the steering wheel
 ```
 
 To update three.js, copy `build/three.module.min.js` and `build/three.core.min.js`
@@ -60,7 +76,13 @@ Things you're most likely to tweak:
 
 - **HUD copy** comes straight from `index.html`; panel titles are in `TITLES` in `hud.js`.
 - **Loss quotes** are `FALL_QUOTES` / `TIME_QUOTES` at the top of `game.js`.
-- **Game feel** (grip, braking, clock, checkpoint spacing) is `TUNE` in `sim.js`.
+- **Game feel** (grip, braking, power) is `TUNE` in `sim.js`; the course length and where
+  the café sits are `COURSE` in `road.js`, and how twisty the road is lives in
+  `Road._plan()` there.
+- **Coffee targets** (dose, yield, shot time, milk temperature) are `TARGET` in `cafe.js`;
+  the café's verdicts are `CUP_VERDICTS` in `game.js`.
+- **Headlamps** (beam shape, cut-off, colour) are `GLSL_HEAD` and `makeHeadUniforms()` in
+  `world.js`.
 - **Colours and time of day** are `PALETTE` in `world.js`; the cabin's materials are at
   the top of `Interior` in `interior.js`.
 

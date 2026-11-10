@@ -6,9 +6,12 @@
    car washes wide, and eventually there's no more road. Crests unload the
    tyres, dips press them in, downhill braking takes longer.
 
+   The course is three miles of this, against the stopwatch, to a café.
+
    No DOM or rendering in here, so the model can be exercised headlessly.
    ========================================================================== */
 
+import { COURSE } from './road.js';
 import { clamp, damp } from './util.js';
 
 export const TUNE = {
@@ -17,17 +20,9 @@ export const TUNE = {
   LAUNCH: 6.8, // m/s² traction-limited acceleration
   POWER: 240, // W/kg
   DRAG: 0.00042,
-  START_S: 14,
-  START_TIME: 34, // seconds on the clock at the start
-  CHECKPOINT: 500, // metres between checkpoints
   OFF_RIGHT: 2.9, // metres from lane centre to the end of the right shoulder
   OFF_LEFT: 6.5, // …and across the oncoming lane to the left one
 };
-
-/** Seconds added at checkpoint n (1-based). The clock gets stingier the further you go. */
-export function checkpointBonus(n) {
-  return Math.max(9.5, 16.5 - 0.5 * (n - 1));
-}
 
 const G = 9.81;
 const STEP = 4; // metres between look-ahead samples
@@ -42,7 +37,7 @@ export class Sim {
   }
 
   reset() {
-    this.s = TUNE.START_S;
+    this.s = COURSE.START_S;
     this.v = 0;
     this.off = 0; // metres right of lane centre
     this.lv = 0; // lateral velocity
@@ -52,15 +47,18 @@ export class Sim {
     this.slip = 0; // 0 gripping … 1 fully sliding
     this.load = 1;
     this.started = false;
-    this.time = 0; // seconds since the first throttle press
-    this.left = TUNE.START_TIME;
+    this.finished = false;
+    this.time = 0; // stopwatch: seconds since the first throttle press
     this.top = 0;
-    this.checkpoints = 0;
-    this.expired = false;
   }
 
   get distance() {
-    return this.s - TUNE.START_S;
+    return Math.min(COURSE.LENGTH, this.s - COURSE.START_S);
+  }
+
+  /** Metres still to go to the finish line. */
+  get remaining() {
+    return Math.max(0, COURSE.FINISH_S - this.s);
   }
 
   /** Tyre load factor at speed v over the road's vertical curvature at s. */
@@ -70,14 +68,10 @@ export class Sim {
 
   /**
    * Advance by h seconds.
-   * @returns {null | {type:'checkpoint', bonus:number, n:number} | {type:'off', side:number} | {type:'timeout'}}
+   * @returns {null | {type:'off', side:number} | {type:'finish'}}
    */
   step(h, gas, brake) {
     const road = this.road;
-    if (this.expired) {
-      gas = false;
-      brake = true;
-    }
     if (gas && !this.started) this.started = true;
     this.thr = damp(this.thr, gas ? 1 : 0, 16, h);
     this.brk = damp(this.brk, brake ? 1 : 0, 22, h);
@@ -117,22 +111,13 @@ export class Sim {
     if (this.off > TUNE.OFF_RIGHT) return { type: 'off', side: 1 };
     if (this.off < -TUNE.OFF_LEFT) return { type: 'off', side: -1 };
 
-    if (this.started && !this.expired) {
-      this.time += h;
-      this.left -= h;
-      const n = Math.floor(this.distance / TUNE.CHECKPOINT);
-      if (n > this.checkpoints) {
-        this.checkpoints = n;
-        const bonus = checkpointBonus(n);
-        this.left += bonus;
-        return { type: 'checkpoint', bonus, n };
-      }
-      if (this.left <= 0) {
-        this.left = 0;
-        this.expired = true;
-      }
+    if (this.started) this.time += h;
+    if (this.s >= COURSE.FINISH_S) {
+      // trim the overshoot of this last step off the clock
+      if (this.v > 0.1) this.time -= (this.s - COURSE.FINISH_S) / this.v;
+      this.finished = true;
+      return { type: 'finish' };
     }
-    if (this.expired && this.v < 1.5) return { type: 'timeout' };
     return null;
   }
 

@@ -27,17 +27,17 @@ import {
   MeshLambertMaterial,
   NormalBlending,
   Object3D,
+  PointLight,
   SRGBColorSpace,
   Scene,
   ShaderMaterial,
   SphereGeometry,
-  SpotLight,
   UniformsLib,
   UniformsUtils,
   Vector3,
 } from '../vendor/three.module.min.js';
-import { ROAD } from './road.js';
-import { clamp, fbm, hash2, lerp, mulberry32, smoothstep, softMin, vnoise } from './util.js';
+import { COURSE, ROAD } from './road.js';
+import { clamp, fbm, hash2, lerp, mulberry32, roundRect, smoothstep, softMin, vnoise } from './util.js';
 
 const DS = ROAD.DS;
 const W = ROAD.HALF_WIDTH;
@@ -68,10 +68,13 @@ const PALETTE = {
 const LEVELS = {
   hemi: [2.7, 0.55],
   sun: [0.85, 0.1],
-  head: [0.22, 1.0],
+  head: [0.08, 1.0], // daytime running lights vs. full beam
   rainAlpha: [0.3, 0.16],
   reflector: [0.75, 1.0],
-  signGlow: [0.18, 0.5],
+  signGlow: [0.18, 0.12], // at night the boards live off the headlamps, like real retroreflective sheeting
+  cafeGlow: [0.72, 1.0], // windows and bulbs
+  cafeLamp: [0, 24], // warm light spilling off the porch
+  cafeSign: [0.3, 0.75],
 };
 
 const _c0 = new Color();
@@ -111,6 +114,92 @@ float fbm2(vec2 p) {
   return s / 0.9375;
 }
 `;
+
+/* --------------------------------------------------------------------------
+   Headlamps
+   --------------------------------------------------------------------------
+   Two separate LED units, one per front corner, in a crisp cool white. Each
+   throws a dipped beam with a hard horizontal cut-off (kicking up toward the
+   verge) and, at night, a matrix main beam above it that reaches far down
+   the road. The pair swivels a little into bends. Everything that can be lit
+   by them (road, terrain, trees, signs, rain, leaves) shares these uniforms.
+   -------------------------------------------------------------------------- */
+function makeHeadUniforms() {
+  return {
+    uLampL: { value: new Vector3() },
+    uLampR: { value: new Vector3() },
+    uLampLRel: { value: new Vector3() }, // relative to the camera, for the weather particles
+    uLampRRel: { value: new Vector3() },
+    uBeamF: { value: new Vector3(0, 0, -1) },
+    uBeamR: { value: new Vector3(1, 0, 0) },
+    uBeamU: { value: new Vector3(0, 1, 0) },
+    uHeadColor: { value: new Color().setRGB(0.86 * 1.7, 0.93 * 1.7, 1.0 * 1.7) },
+    uHead: { value: 0 },
+    uHigh: { value: 0 },
+  };
+}
+
+const GLSL_HEAD = /* glsl */ `
+uniform vec3 uBeamF, uBeamR, uBeamU, uHeadColor;
+uniform float uHead, uHigh;
+// One lamp. L runs from the lamp to the point being lit.
+float lampBeam(vec3 L) {
+  float z = dot(L, uBeamF);
+  if (z < 0.4) return 0.0;
+  float ax = dot(L, uBeamR) / z;
+  float ay = dot(L, uBeamU) / z;
+  float d2 = dot(L, L);
+  // dipped beam: flat cut-off just below the horizon, rising toward the nearside verge
+  float cutY = -0.012 + clamp(ax, 0.0, 0.16) * 0.27;
+  float below = 1.0 - smoothstep(cutY - 0.005, cutY + 0.005, ay);
+  float wash = exp(-ax * ax / 0.5);
+  float gap = max(cutY - ay, 0.0) / 0.06;
+  float hot = exp(-ax * ax / 0.045) * exp(-gap * gap);
+  float low = below * (0.55 * wash + 1.25 * hot) / (1.0 + d2 / 520.0);
+  // matrix main beam: a tight block above the line that carries a long way
+  float rise = (ay - cutY) / 0.075;
+  float high = (1.0 - below) * exp(-ax * ax / 0.03) * exp(-rise * rise) / (1.0 + d2 / 2600.0);
+  return low + uHigh * 0.9 * high;
+}
+`;
+
+function shareHead(uniforms, head) {
+  for (const k of Object.keys(head)) uniforms[k] = head[k];
+}
+
+/** Teach a built-in Lambert material about the headlamps. */
+function lightByHeadlamps(material, head) {
+  material.onBeforeCompile = (shader) => {
+    shareHead(shader.uniforms, head);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vHeadWorld;')
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        vec4 headWorld = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          headWorld = instanceMatrix * headWorld;
+        #endif
+        vHeadWorld = (modelMatrix * headWorld).xyz;`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vHeadWorld;\nuniform vec3 uLampL, uLampR;\n${GLSL_HEAD}`)
+      .replace(
+        '#include <lights_fragment_end>',
+        `#include <lights_fragment_end>
+        {
+          vec3 la = vHeadWorld - uLampL;
+          vec3 lb = vHeadWorld - uLampR;
+          mat3 toView = mat3(viewMatrix);
+          float fa = lampBeam(la) * clamp(dot(normal, -normalize(toView * la)) * 0.6 + 0.4, 0.0, 1.0);
+          float fb = lampBeam(lb) * clamp(dot(normal, -normalize(toView * lb)) * 0.6 + 0.4, 0.0, 1.0);
+          reflectedLight.directDiffuse += diffuseColor.rgb * uHeadColor * (uHead * (fa + fb));
+        }`,
+      );
+  };
+  material.customProgramCacheKey = () => 'headlamps';
+  return material;
+}
 
 /* --------------------------------------------------------------------------
    Sky dome: cloud deck, three ridgelines, valley haze
@@ -182,8 +271,8 @@ function makeSkyMaterial() {
 /* --------------------------------------------------------------------------
    Wet asphalt
    -------------------------------------------------------------------------- */
-function makeRoadMaterial() {
-  return new ShaderMaterial({
+function makeRoadMaterial(head) {
+  const mat = new ShaderMaterial({
     fog: true,
     uniforms: UniformsUtils.merge([
       UniformsLib.fog,
@@ -197,10 +286,8 @@ function makeRoadMaterial() {
         uLeafC: { value: new Color('#8f2a16') },
         uSky: { value: new Color() },
         uAmbient: { value: new Color() },
-        uHeadPos: { value: new Vector3() },
-        uHeadDir: { value: new Vector3(0, 0, -1) },
-        uHead: { value: 0 },
         uHalfWidth: { value: W },
+        uFinish: { value: -1e6 },
         uTime: { value: 0 },
       },
     ]),
@@ -220,12 +307,13 @@ function makeRoadMaterial() {
     fragmentShader: /* glsl */ `
       precision highp float;
       uniform vec3 uAsphalt, uAsphalt2, uYellow, uWhite, uLeafA, uLeafB, uLeafC, uSky, uAmbient;
-      uniform vec3 uHeadPos, uHeadDir;
-      uniform float uHead, uHalfWidth, uTime;
+      uniform vec3 uLampL, uLampR;
+      uniform float uHalfWidth, uTime, uFinish;
       varying vec2 vUv;
       varying vec3 vWorld;
       #include <fog_pars_fragment>
       ${GLSL_NOISE}
+      ${GLSL_HEAD}
       void main() {
         float x = (vUv.x - 0.5) * 2.0 * uHalfWidth;
         float ax = abs(x);
@@ -242,6 +330,13 @@ function makeRoadMaterial() {
         float wl = ramp(0.065 + fw, 0.065 - fw, abs(ax - (uHalfWidth - 0.34)));
         alb = mix(alb, uYellow, yl * wear);
         alb = mix(alb, uWhite, wl * wear);
+
+        // chequered finish line across the road at the end of the course
+        float fs = vUv.y - uFinish;
+        float fin = step(abs(fs), 1.2) * step(ax, uHalfWidth - 0.45);
+        float chk = mod(floor(x / 0.6) + floor((fs + 1.2) / 0.6), 2.0);
+        alb = mix(alb, mix(vec3(0.02), uWhite, chk), fin * 0.92);
+        wl = max(wl, fin * chk);
 
         // fallen leaves, drifting up against the verges
         vec2 lc = wp * 5.5;
@@ -268,19 +363,18 @@ function makeRoadMaterial() {
         vec3 col = alb * uAmbient * (1.0 - 0.3 * puddle);
         col = mix(col, uSky, clamp(fres * shine, 0.0, 1.0));
 
-        // headlights
-        vec3 L = vWorld - uHeadPos;
-        float dl = length(L);
-        float cone = smoothstep(0.84, 0.985, dot(L / dl, uHeadDir));
-        float lit = cone * uHead / (1.0 + 0.05 * dl + 0.003 * dl * dl);
-        col += alb * lit * vec3(2.6, 2.45, 2.15) * (1.0 - 0.45 * puddle);
-        col += (uYellow * yl + uWhite * wl) * wear * lit * 2.4;
+        // headlamps: two pools that merge down the road; paint throws the light straight back
+        float lit = (lampBeam(vWorld - uLampL) + lampBeam(vWorld - uLampR)) * uHead;
+        col += alb * uHeadColor * lit * (1.0 - 0.45 * puddle);
+        col += (uYellow * yl + uWhite * wl) * wear * uHeadColor * lit * 0.85;
 
         gl_FragColor = vec4(col, 1.0);
         #include <fog_fragment>
       }
     `,
   });
+  shareHead(mat.uniforms, head);
+  return mat;
 }
 
 /* --------------------------------------------------------------------------
@@ -325,8 +419,8 @@ function makeParticleGeometry(count, seed) {
   return geo;
 }
 
-function makeRainMaterial() {
-  return new ShaderMaterial({
+function makeRainMaterial(head) {
+  const mat = new ShaderMaterial({
     transparent: true,
     depthWrite: false,
     fog: false,
@@ -339,12 +433,11 @@ function makeRainMaterial() {
       uStreak: { value: new Vector3(0, -0.3, 0) },
       uColor: { value: new Color() },
       uAlpha: { value: 0.3 },
-      uHeadDir: { value: new Vector3(0, 0, -1) },
-      uHead: { value: 0 },
     },
     vertexShader: /* glsl */ `
-      uniform vec3 uCamMod, uBox, uVel, uStreak, uHeadDir;
-      uniform float uTime, uHead;
+      uniform vec3 uCamMod, uBox, uVel, uStreak, uLampLRel, uLampRRel;
+      uniform float uTime;
+      ${GLSL_HEAD}
       attribute vec2 aCorner, aRand;
       varying float vAlpha;
       varying float vSide;
@@ -358,8 +451,9 @@ function makeRainMaterial() {
         float dist = length(p);
         mv.xy += perp * aCorner.x * (0.006 + 0.0009 * dist);
         gl_Position = projectionMatrix * mv;
-        float beam = smoothstep(0.82, 0.98, dot(normalize(p), uHeadDir)) * (1.0 - smoothstep(6.0, 34.0, dist)) * uHead;
-        vAlpha = smoothstep(1.0, 3.5, dist) * (1.0 - smoothstep(12.0, 20.0, dist)) * (0.55 + 0.45 * aRand.y) * (1.0 + 3.0 * beam);
+        // drops crossing either beam light up
+        float beam = min(lampBeam(p - uLampLRel) + lampBeam(p - uLampRRel), 2.5) * uHead;
+        vAlpha = smoothstep(1.0, 3.5, dist) * (1.0 - smoothstep(12.0, 20.0, dist)) * (0.55 + 0.45 * aRand.y) * (1.0 + 2.2 * beam);
         vSide = aCorner.x;
       }
     `,
@@ -375,10 +469,12 @@ function makeRainMaterial() {
       }
     `,
   });
+  shareHead(mat.uniforms, head);
+  return mat;
 }
 
-function makeLeafMaterial() {
-  return new ShaderMaterial({
+function makeLeafMaterial(head) {
+  const mat = new ShaderMaterial({
     transparent: false,
     side: DoubleSide,
     fog: true,
@@ -392,8 +488,9 @@ function makeLeafMaterial() {
       },
     ]),
     vertexShader: /* glsl */ `
-      uniform vec3 uCamMod, uBox;
+      uniform vec3 uCamMod, uBox, uLight, uLampLRel, uLampRRel;
       uniform float uTime;
+      ${GLSL_HEAD}
       attribute vec2 aCorner, aRand;
       varying vec3 vCol;
       #include <fog_pars_vertex>
@@ -413,21 +510,23 @@ function makeLeafMaterial() {
         vec3 c1 = vec3(0.60, 0.18, 0.03);
         vec3 c2 = vec3(0.72, 0.42, 0.04);
         vec3 c3 = vec3(0.42, 0.06, 0.02);
-        vCol = mix(mix(c1, c2, aRand.y), c3, step(0.75, aRand.x)) * (0.75 + 0.25 * abs(flip));
+        float beam = min(lampBeam(p - uLampLRel) + lampBeam(p - uLampRRel), 2.0) * uHead;
+        vCol = mix(mix(c1, c2, aRand.y), c3, step(0.75, aRand.x)) * (0.75 + 0.25 * abs(flip)) * (uLight + uHeadColor * beam * 0.6);
         #include <fog_vertex>
       }
     `,
     fragmentShader: /* glsl */ `
       precision highp float;
-      uniform vec3 uLight;
       varying vec3 vCol;
       #include <fog_pars_fragment>
       void main() {
-        gl_FragColor = vec4(vCol * uLight, 1.0);
+        gl_FragColor = vec4(vCol, 1.0);
         #include <fog_fragment>
       }
     `,
   });
+  shareHead(mat.uniforms, head);
+  return mat;
 }
 
 /* --------------------------------------------------------------------------
@@ -563,6 +662,19 @@ class Builder {
     this.quad(p(-1, -1, 0), p(-1, 1, 0), p(-1, 1, 1), p(-1, -1, 1), color);
   }
 
+  /** Solid box sitting on y, `w` along (rx, rz) and `d` across it, with a lid. */
+  block(x, y, z, rx, rz, w, h, d, color, lid = color) {
+    this.post(x, y, z, rx, rz, w, h, d, color);
+    const fx = -rz;
+    const fz = rx;
+    const p = (sr, sf) => [x + (rx * sr * w) / 2 + (fx * sf * d) / 2, y + h, z + (rz * sr * w) / 2 + (fz * sf * d) / 2];
+    this.quad(p(-1, 1), p(1, 1), p(1, -1), p(-1, -1), lid);
+  }
+
+  tri(a, b, c, color) {
+    this.quad(a, b, c, c, color);
+  }
+
   build() {
     if (!this.count) return null;
     const g = new BufferGeometry();
@@ -600,6 +712,117 @@ function makeChevronTexture() {
   t.colorSpace = SRGBColorSpace;
   t.anisotropy = 4;
   return t;
+}
+
+/* --------------------------------------------------------------------------
+   The café at the end of the course
+   -------------------------------------------------------------------------- */
+function canvasTexture(w, h, draw) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+function drawCup(g, x, y, s, color) {
+  g.save();
+  g.translate(x, y);
+  g.scale(s, s);
+  g.fillStyle = color;
+  g.strokeStyle = color;
+  g.lineWidth = 5;
+  g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(-26, -14);
+  g.lineTo(26, -14);
+  g.quadraticCurveTo(24, 22, 0, 24);
+  g.quadraticCurveTo(-24, 22, -26, -14);
+  g.fill();
+  g.beginPath();
+  g.arc(30, 0, 11, -1.2, 1.4);
+  g.stroke();
+  for (const sx of [-10, 4]) {
+    g.beginPath();
+    g.moveTo(sx, -24);
+    g.quadraticCurveTo(sx + 8, -32, sx, -40);
+    g.quadraticCurveTo(sx - 8, -48, sx, -56);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function makeCafeSignTexture() {
+  return canvasTexture(1024, 224, (g, w, h) => {
+    g.fillStyle = '#10261b';
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#e9d9b4';
+    g.lineWidth = 6;
+    g.beginPath();
+    roundRect(g, 12, 12, w - 24, h - 24, 18);
+    g.stroke();
+    drawCup(g, 118, 132, 1.5, '#e9d9b4');
+    g.fillStyle = '#f1e6c8';
+    g.textBaseline = 'middle';
+    g.textAlign = 'left';
+    g.font = '800 92px Inter, Helvetica, Arial, sans-serif';
+    g.fillText('CORTADO PASS', 220, 92);
+    g.font = '600 44px "JetBrains Mono", ui-monospace, monospace';
+    g.fillStyle = '#e0b866';
+    g.fillText('CAF\u00c9  \u00b7  ESPRESSO  \u00b7  PIE', 224, 170);
+  });
+}
+
+function makeCafeRoadSignTexture() {
+  return canvasTexture(256, 320, (g, w, h) => {
+    g.fillStyle = '#5a3a1e';
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#f3ead6';
+    g.lineWidth = 8;
+    g.strokeRect(10, 10, w - 20, h - 20);
+    drawCup(g, 118, 132, 1.7, '#f3ead6');
+    g.fillStyle = '#f3ead6';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = '800 62px Inter, Helvetica, Arial, sans-serif';
+    g.fillText('CAF\u00c9', w / 2, 236);
+    g.beginPath();
+    g.moveTo(84, 286);
+    g.lineTo(160, 286);
+    g.lineTo(160, 272);
+    g.lineTo(190, 290);
+    g.lineTo(160, 308);
+    g.lineTo(160, 294);
+    g.lineTo(84, 294);
+    g.closePath();
+    g.fill();
+  });
+}
+
+/** Where the car ends up, and the frame the café is built in. */
+export function cafeSite(road) {
+  road.ensure(COURSE.STOP_S + 300);
+  const p = road.at(COURSE.STOP_S, {});
+  const fx = Math.sin(p.th);
+  const fz = -Math.cos(p.th);
+  const rx = Math.cos(p.th);
+  const rz = Math.sin(p.th);
+  const yaw = Math.atan((COURSE.PARK_CURVE * COURSE.PARK_OFFSET) / COURSE.PARK_RUN); // nose-in angle at rest
+  const lat = ROAD.LANE + COURSE.PARK_OFFSET;
+  const c = Math.cos(yaw);
+  const sn = Math.sin(yaw);
+  const hx = fx * c + rx * sn; // the parked car's heading: also "into the building"
+  const hz = fz * c + rz * sn;
+  const ux = -hz; // along the façade, to the driver's right
+  const uz = hx;
+  const carX = p.x + rx * lat;
+  const carZ = p.z + rz * lat;
+  const y = p.y - 0.05;
+  const FRONT = 16; // metres from the driver to the porch steps
+  return { yaw, hx, hz, ux, uz, y, x: carX + hx * FRONT, z: carZ + hz * FRONT };
 }
 
 /* --------------------------------------------------------------------------
@@ -702,35 +925,48 @@ export class World {
     this.sun = new DirectionalLight(0xffffff, 0.8);
     this.sun.position.set(-0.5, 1, -0.25);
     this.scene.add(this.sun);
-    this.head = new SpotLight(0xfff1d6, 0, 150, 0.46, 0.7, 1.7);
-    this.scene.add(this.head);
-    this.scene.add(this.head.target);
+    this.head = makeHeadUniforms();
 
     // materials shared by every chunk
-    this.roadMat = makeRoadMaterial();
-    this.groundMat = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
-    this.treeMat = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
-    this.propMat = new MeshLambertMaterial({ vertexColors: true, flatShading: true, side: DoubleSide });
+    const lit = (m) => lightByHeadlamps(m, this.head);
+    this.roadMat = makeRoadMaterial(this.head);
+    this.groundMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    this.treeMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    this.propMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true, side: DoubleSide }));
     this.reflectorMat = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
     this.chevronTex = makeChevronTexture();
-    this.signMat = new MeshLambertMaterial({
-      map: this.chevronTex,
-      emissive: 0xffffff,
-      emissiveMap: this.chevronTex,
-      emissiveIntensity: 0.2,
-      side: DoubleSide,
-    });
+    this.signMat = lit(
+      new MeshLambertMaterial({
+        map: this.chevronTex,
+        emissive: 0xffffff,
+        emissiveMap: this.chevronTex,
+        emissiveIntensity: 0.2,
+        side: DoubleSide,
+      }),
+    );
+    this.glowMat = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
+    this.cafeSignMat = lit(
+      new MeshLambertMaterial({ map: makeCafeSignTexture(), emissive: 0xffffff, emissiveIntensity: 0.3, side: DoubleSide }),
+    );
+    this.cafeSignMat.emissiveMap = this.cafeSignMat.map;
+    this.cafeRoadSignMat = lit(
+      new MeshLambertMaterial({ map: makeCafeRoadSignTexture(), emissive: 0xffffff, emissiveIntensity: 0.18, side: DoubleSide }),
+    );
+    this.cafeRoadSignMat.emissiveMap = this.cafeRoadSignMat.map;
+    this.cafeLamp = new PointLight(0xffb469, 0, 26, 1.8);
+    this.scene.add(this.cafeLamp);
+    this.roadMat.uniforms.uFinish.value = COURSE.FINISH_S;
     this.treeGeos = makeTreeGeometries();
     this.leafTints = LEAF_TINTS.map((h) => new Color(h));
     this.coniferTints = CONIFER_TINTS.map((h) => new Color(h));
 
     // weather
-    this.rainMat = makeRainMaterial();
+    this.rainMat = makeRainMaterial(this.head);
     this.rain = new Mesh(makeParticleGeometry(quality.rain, 77), this.rainMat);
     this.rain.frustumCulled = false;
     this.rain.renderOrder = 10;
     this.scene.add(this.rain);
-    this.leafMat = makeLeafMaterial();
+    this.leafMat = makeLeafMaterial(this.head);
     this.leaves = new Mesh(makeParticleGeometry(quality.leaves, 1234), this.leafMat);
     this.leaves.frustumCulled = false;
     this.scene.add(this.leaves);
@@ -738,6 +974,7 @@ export class World {
     this._dummy = new Object3D();
     this._col = new Color();
 
+    this._buildCafe();
     this.setNight(0);
   }
 
@@ -757,19 +994,141 @@ export class World {
     this.hemi.intensity = lerp(LEVELS.hemi[0], LEVELS.hemi[1], t);
     mixColor(this.sun.color, PALETTE.sun, t);
     this.sun.intensity = lerp(LEVELS.sun[0], LEVELS.sun[1], t);
-    const head = lerp(LEVELS.head[0], LEVELS.head[1], t);
-    this.head.intensity = head * 5200;
+    this.head.uHead.value = lerp(LEVELS.head[0], LEVELS.head[1], t);
+    this.head.uHigh.value = smoothstep(0.35, 0.9, t); // main beam only once it's properly dark
     const r = this.roadMat.uniforms;
     mixColor(r.uAmbient.value, PALETTE.roadAmbient, t);
     mixColor(r.uSky.value, PALETTE.roadSky, t);
-    r.uHead.value = head;
     mixColor(this.rainMat.uniforms.uColor.value, PALETTE.rain, t);
     this.rainMat.uniforms.uAlpha.value = lerp(LEVELS.rainAlpha[0], LEVELS.rainAlpha[1], t);
-    this.rainMat.uniforms.uHead.value = head;
     mixColor(this.leafMat.uniforms.uLight.value, PALETTE.roadAmbient, t);
     const refl = lerp(LEVELS.reflector[0], LEVELS.reflector[1], t);
     this.reflectorMat.color.setRGB(refl, refl, refl);
     this.signMat.emissiveIntensity = lerp(LEVELS.signGlow[0], LEVELS.signGlow[1], t);
+    const glow = lerp(LEVELS.cafeGlow[0], LEVELS.cafeGlow[1], t);
+    this.glowMat.color.setRGB(glow, glow, glow);
+    this.cafeLamp.intensity = lerp(LEVELS.cafeLamp[0], LEVELS.cafeLamp[1], t);
+    this.cafeSignMat.emissiveIntensity = lerp(LEVELS.cafeSign[0], LEVELS.cafeSign[1], t);
+  }
+
+  /* ------------------------------------------------------------------ café */
+
+  /** A timber lodge with a lit porch, facing wherever the car is going to park. */
+  _buildCafe() {
+    const site = (this.site = cafeSite(this.road));
+    const group = (this.cafe = new Group());
+    group.position.set(site.x, site.y, site.z);
+    // local frame: a = along the façade (driver's right), b = into the building, y = up
+    const P = (a, b, y) => [site.ux * a + site.hx * b, y, site.uz * a + site.hz * b];
+    const body = new Builder();
+    const glow = new Builder();
+    const sign = new Builder(true);
+
+    const TIMBER = lin('#5b3b24');
+    const TIMBER_DARK = lin('#3a2516');
+    const TIMBER_LIGHT = lin('#7a5433');
+    const DECK = lin('#6d4b2f');
+    const STONE = lin('#6c6964');
+    const ROOF = lin('#1d3528');
+    const ROOF_UNDER = lin('#2a1c12');
+    const WINDOW = [1.0, 0.74, 0.38];
+    const BULB = [1.0, 0.82, 0.5];
+    const block = (a, b, y, w, h, d, color, lid) => {
+      const c = P(a, b, y);
+      body.block(c[0], c[1], c[2], site.ux, site.uz, w, h, d, color, lid);
+    };
+    // a wall-mounted panel facing the car park
+    const panel = (builder, a0, a1, y0, y1, b, color, uvs) => builder.quad(P(a0, b, y0), P(a1, b, y0), P(a1, b, y1), P(a0, b, y1), color, uvs);
+
+    // deck, steps, plinth, walls
+    block(0, 1.5, 0, 12.6, 0.36, 3.2, DECK, lin('#7b5637'));
+    block(0, -0.32, 0, 2.6, 0.18, 0.6, DECK);
+    block(0, 6.75, 0, 11.9, 0.62, 7.5, STONE);
+    block(0, 6.75, 0.62, 11.5, 3.15, 7.2, TIMBER, TIMBER_DARK);
+    for (const a of [-5.75, 5.75]) block(a, 6.75, 0.62, 0.22, 3.15, 7.3, TIMBER_DARK); // corner boards
+    // windows, door and their frames (drawn just proud of the wall)
+    const WALL = 3.12;
+    for (const [a0, a1] of [
+      [-5.0, -1.5],
+      [1.5, 5.0],
+    ]) {
+      panel(body, a0 - 0.12, a1 + 0.12, 1.42, 3.22, WALL - 0.02, TIMBER_DARK);
+      panel(glow, a0, a1, 1.54, 3.1, WALL - 0.04, WINDOW);
+      for (const m of [a0 + (a1 - a0) / 3, a0 + (2 * (a1 - a0)) / 3]) panel(body, m - 0.04, m + 0.04, 1.54, 3.1, WALL - 0.06, TIMBER_DARK);
+      panel(body, a0, a1, 2.5, 2.57, WALL - 0.06, TIMBER_DARK);
+    }
+    panel(body, -0.72, 0.72, 0.62, 2.95, WALL - 0.02, TIMBER_DARK);
+    panel(body, -0.6, 0.6, 0.66, 2.84, WALL - 0.04, TIMBER_LIGHT);
+    panel(glow, -0.38, 0.38, 1.7, 2.6, WALL - 0.06, WINDOW);
+    for (const a of [-5.9, 5.9]) {
+      // side windows
+      glow.quad(P(a * 1.0, 5.2, 1.6), P(a * 1.0, 8.2, 1.6), P(a * 1.0, 8.2, 3.0), P(a * 1.0, 5.2, 3.0), WINDOW);
+    }
+    // porch: posts, a lean-to roof and a fascia for the sign
+    for (const a of [-6.1, -2.05, 2.05, 6.1]) block(a, 0.16, 0.36, 0.2, 2.95, 0.2, TIMBER_DARK);
+    body.quad(P(-6.7, -0.5, 3.22), P(6.7, -0.5, 3.22), P(6.7, 3.2, 4.0), P(-6.7, 3.2, 4.0), ROOF);
+    body.quad(P(-6.7, -0.5, 3.16), P(6.7, -0.5, 3.16), P(6.7, 3.2, 3.94), P(-6.7, 3.2, 3.94), ROOF_UNDER);
+    panel(body, -6.7, 6.7, 3.02, 3.24, -0.5, TIMBER_DARK);
+    // main roof: a steep gable in the same dark green as the car
+    const EAVE = 3.72;
+    const RIDGE = 7.05;
+    body.quad(P(-6.6, 2.6, EAVE), P(6.6, 2.6, EAVE), P(6.6, 6.75, RIDGE), P(-6.6, 6.75, RIDGE), ROOF);
+    body.quad(P(6.6, 10.9, EAVE), P(-6.6, 10.9, EAVE), P(-6.6, 6.75, RIDGE), P(6.6, 6.75, RIDGE), ROOF);
+    for (const a of [-5.75, 5.75]) body.tri(P(a, 3.15, 3.77), P(a, 10.35, 3.77), P(a, 6.75, RIDGE - 0.12), TIMBER_LIGHT);
+    block(3.9, 8.2, 5.0, 0.95, 3.0, 0.95, STONE, lin('#3b3936')); // chimney
+    // string lights along the porch, sagging between the posts
+    const posts = [-6.1, -2.05, 2.05, 6.1];
+    for (let k = 0; k < posts.length - 1; k++) {
+      for (let j = 1; j < 6; j++) {
+        const t = j / 6;
+        const a = lerp(posts[k], posts[k + 1], t);
+        const y = 3.0 - 0.3 * Math.sin(t * Math.PI);
+        const r = 0.075;
+        glow.quad(P(a - r, -0.1, y - r), P(a + r, -0.1, y - r), P(a + r, -0.1, y + r), P(a - r, -0.1, y + r), BULB);
+        glow.quad(P(a, -0.1 - r, y - r), P(a, -0.1 + r, y - r), P(a, -0.1 + r, y + r), P(a, -0.1 - r, y + r), BULB);
+      }
+    }
+    // the name over the door
+    panel(sign, -3.3, 3.3, 3.34, 4.78, -0.56, [1, 1, 1]);
+    panel(body, -3.42, 3.42, 3.28, 4.84, -0.52, TIMBER_DARK);
+    // a lamp at the edge of the lot
+    block(-9.2, -4.5, 0, 0.14, 3.9, 0.14, lin('#2b2b2e'));
+    {
+      const c = P(-9.2, -4.5, 3.9);
+      glow.block(c[0], c[1], c[2], site.ux, site.uz, 0.42, 0.34, 0.42, BULB);
+    }
+
+    for (const [builder, mat] of [
+      [body, this.propMat],
+      [glow, this.glowMat],
+      [sign, this.cafeSignMat],
+    ]) {
+      const g = builder.build();
+      if (g) group.add(new Mesh(g, mat));
+    }
+    this.scene.add(group);
+    const lamp = P(0, -1.2, 2.9);
+    this.cafeLamp.position.set(site.x + lamp[0], site.y + lamp[1], site.z + lamp[2]);
+
+    // roadside boards: one well before the finish, one at the turn-in
+    const boards = new Builder(true);
+    const poles = new Builder();
+    for (const s of [COURSE.FINISH_S - 260, COURSE.LOT_FROM - 6]) {
+      const q = this.road.at(s, {});
+      const rx = Math.cos(q.th);
+      const rz = Math.sin(q.th);
+      const bx = q.x + rx * (W + 2.2) - site.x;
+      const bz = q.z + rz * (W + 2.2) - site.z;
+      const y0 = q.y - site.y + 1.3;
+      const hw = 0.62;
+      boards.quad([bx - rx * hw, y0, bz - rz * hw], [bx + rx * hw, y0, bz + rz * hw], [bx + rx * hw, y0 + 1.55, bz + rz * hw], [bx - rx * hw, y0 + 1.55, bz - rz * hw], [1, 1, 1]);
+      poles.post(bx + rz * 0.05, q.y - site.y - 0.4, bz - rx * 0.05, rx, rz, 0.08, 3.2, 0.06, lin('#5d6165'));
+    }
+    const far = new Group();
+    far.position.copy(group.position);
+    far.add(new Mesh(boards.build(), this.cafeRoadSignMat), new Mesh(poles.build(), this.propMat));
+    this.scene.add(far);
+    this.cafeFar = far;
   }
 
   /* ---------------------------------------------------------------- chunks */
@@ -797,6 +1156,7 @@ export class World {
     const bank = new Float32Array(n);
     const hill = new Float32Array(n);
     const lim = [new Float32Array(n), new Float32Array(n)]; // [left, right] inside-of-corner limits
+    const lot = new Float32Array(n); // 1 where the café's gravel lot pushes the hillside back
     for (let a = 0; a < n; a++) {
       const i = i0 + a;
       const th = road.th[i];
@@ -823,6 +1183,8 @@ export class World {
       }
       lim[0][a] = ll;
       lim[1][a] = lr;
+      const sAt = i * DS;
+      lot[a] = smoothstep(COURSE.LOT_FROM, COURSE.LOT_FROM + 18, sAt) * (1 - smoothstep(COURSE.LOT_TO - 18, COURSE.LOT_TO, sAt));
     }
 
     const D0 = W + 2.4;
@@ -884,13 +1246,15 @@ export class World {
           }
           const px = cx[a] + rx[a] * sg * D - rz[a] * along;
           const pz = cz[a] + rz[a] * sg * D + rx[a] * along;
-          const h = j === 0 ? edgeY : edgeY + terrainOffset(COLS[j], side, px + ox, pz + oz);
+          // on the café side the whole hillside profile starts further out, leaving flat gravel
+          const dd = sg > 0 && lot[a] > 0 ? Math.max(Math.min(COLS[j], 1.1), COLS[j] - COURSE.LOT_DEPTH * lot[a]) : COLS[j];
+          const h = j === 0 ? edgeY : edgeY + terrainOffset(dd, side, px + ox, pz + oz);
           const o = (a * NC + j) * 3;
           pos[o] = px;
           pos[o + 1] = h;
           pos[o + 2] = pz;
           const steep = j === 0 ? 0 : Math.abs(h - prevH) / Math.max(0.3, D - prevD);
-          groundColor(COLS[j], steep, px + ox, pz + oz, tmp);
+          groundColor(dd, steep, px + ox, pz + oz, tmp);
           col[o] = tmp[0];
           col[o + 1] = tmp[1];
           col[o + 2] = tmp[2];
@@ -977,7 +1341,7 @@ export class World {
               c,
             );
           }
-        } else if (i % 20 === 0 && i > 0) {
+        } else if (i % 20 === 0 && i > 0 && !(sg > 0 && lot[a] > 0.02)) {
           // delineator posts mark the edge where there's no rail
           const p = at(a, sg, W + 0.7, -0.05);
           props.post(p[0], p[1], p[2], rx[a], rz[a], 0.085, 1.0, 0.035, POST_WHITE);
@@ -1039,6 +1403,7 @@ export class World {
       const side = sg * lerp(hill[a], hill[a + 1], ta);
       const minD = side > 0.25 ? 7.5 : side < -0.25 ? 3.0 : 3.4;
       const dd = minD + (80 - minD) * Math.pow(rand(), 1.7);
+      if (sg > 0 && lot[a] > 0.02 && dd < COURSE.LOT_DEPTH * lot[a] + 9) continue; // nothing grows in the car park
       let j = 0;
       while (j < NC - 2 && COLS[j + 1] < dd) j++;
       const tj = clamp((dd - COLS[j]) / (COLS[j + 1] - COLS[j]), 0, 1);
@@ -1095,6 +1460,9 @@ export class World {
 
   /** Stream chunks around distance `s`. Builds one per call unless `all`. */
   stream(s, all = false) {
+    const near = Math.abs(s - COURSE.STOP_S) < 700;
+    this.cafe.visible = near;
+    this.cafeFar.visible = near;
     const first = Math.max(0, Math.floor((s - 70) / CHUNK_LEN));
     const last = Math.floor((s + this.quality.view) / CHUNK_LEN);
     for (const [ci, chunk] of this.chunks) {
@@ -1112,28 +1480,26 @@ export class World {
 
   /**
    * @param {number} dt
-   * @param {import('../vendor/three.module.min.js').Camera} camera
-   * @param {Vector3} forward   world-space car forward
-   * @param {number} speed      m/s
+   * @param {Vector3} cp          camera position (world)
+   * @param {Vector3} forward     car forward (world)
+   * @param {number} speed        m/s
+   * @param {{left:Vector3, right:Vector3, f:Vector3, r:Vector3, u:Vector3}} lamps  headlamp positions and beam axes (world)
    */
-  update(dt, camera, forward, speed) {
+  update(dt, cp, forward, speed, lamps) {
     this.time += dt;
     const t = this.time;
-    const cp = camera.position;
     this.sky.position.copy(cp);
     this.skyMat.uniforms.uTime.value = t;
     this.roadMat.uniforms.uTime.value = t;
 
-    // headlights sit out at the nose, below the bonnet line, aimed slightly down
-    const hp = this.roadMat.uniforms.uHeadPos.value;
-    hp.copy(cp).addScaledVector(forward, 3.5);
-    hp.y -= 0.62;
-    const hd = this.roadMat.uniforms.uHeadDir.value;
-    hd.copy(forward);
-    hd.y -= 0.075;
-    hd.normalize();
-    this.head.position.copy(hp);
-    this.head.target.position.copy(hp).addScaledVector(hd, 30);
+    const h = this.head;
+    h.uLampL.value.copy(lamps.left);
+    h.uLampR.value.copy(lamps.right);
+    h.uLampLRel.value.copy(lamps.left).sub(cp);
+    h.uLampRRel.value.copy(lamps.right).sub(cp);
+    h.uBeamF.value.copy(lamps.f);
+    h.uBeamR.value.copy(lamps.r);
+    h.uBeamU.value.copy(lamps.u);
 
     // rain: streak length follows the car, so at speed it comes straight at you
     const r = this.rainMat.uniforms;
@@ -1141,7 +1507,6 @@ export class World {
     r.uTime.value = t;
     r.uCamMod.value.set(((cp.x % box.x) + box.x) % box.x, ((cp.y % box.y) + box.y) % box.y, ((cp.z % box.z) + box.z) % box.z);
     r.uStreak.value.copy(r.uVel.value).addScaledVector(forward, -speed).multiplyScalar(0.03);
-    r.uHeadDir.value.copy(hd);
 
     const l = this.leafMat.uniforms;
     const lb = l.uBox.value;

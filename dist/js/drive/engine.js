@@ -25,9 +25,13 @@ import { ROAD, Road } from './road.js';
 import { World, makeEnvScene } from './world.js';
 import { CAR_CENTER_X, Interior, START_BUTTON_POS, buildExterior } from './interior.js';
 import { GlassPass, WiperClock } from './glass.js';
-import { clamp, damp, fmtSpeed, lerp, smoothstep } from './util.js';
+import { clamp, damp, fmtSpeed, lerp, roundRect, smoothstep } from './util.js';
 
 const EYE_HEIGHT = 1.12;
+// headlamp position relative to the driver's eye: out at the nose, one per front corner
+const LAMP_X = 0.66;
+const LAMP_Y = -0.5;
+const LAMP_Z = -3.3;
 const GEAR_TOP = [0, 17, 30, 44, 58, 72, 88, 112]; // m/s at the redline, gears 1-7
 const REDLINE = 7400;
 
@@ -72,7 +76,10 @@ export class Cruise {
     car.accel = a;
     car.throttle = clamp(a / 4.6, 0, 1);
     car.brake = clamp(-a / 6, 0, 1);
-    car.off = damp(car.off, 0, 2.5, dt);
+    // wherever the game left the car (the café's lot, say), ease it back into its lane
+    car.steer = damp(car.steer, clamp(-car.off * 0.12, -0.9, 0.9), 4, dt);
+    car.off = damp(car.off, 0, car.v > 1 ? 1.1 : 0, dt);
+    car.yaw = damp(car.yaw, 0, 1.6, dt);
     car.shake = damp(car.shake, 0, 6, dt);
     car.free = null;
     this.boost = damp(this.boost, 0, 0.9, dt);
@@ -144,7 +151,9 @@ export class Engine {
     });
     if (!half) this.rt.texture.colorSpace = SRGBColorSpace;
 
-    this.car = { s: 30, v: 9, accel: 0, throttle: 0, brake: 0, off: 0, shake: 0, yaw: 0, free: null };
+    // s: distance along the road; off: metres right of the lane centre; yaw: heading relative to the road;
+    // steer: extra turn on the wheel beyond what the road asks for; free: a pose override while crashing
+    this.car = { s: 30, v: 9, accel: 0, throttle: 0, brake: 0, off: 0, shake: 0, yaw: 0, steer: 0, free: null };
     this.gear = 2;
     this.rpm = 1400;
     this.cruise = new Cruise();
@@ -167,6 +176,8 @@ export class Engine {
     this._p = {};
     this._fwd = new Vector3();
     this._v = new Vector3();
+    this.lamps = { left: new Vector3(), right: new Vector3(), f: new Vector3(), r: new Vector3(), u: new Vector3() };
+    this.beamYaw = 0;
     this.rig = rigFor(1.6);
 
     this.onLayout = null;
@@ -259,7 +270,7 @@ export class Engine {
     const t = this.night;
     this.world.setNight(t);
     this.interior.setNight(t);
-    this.exterior.paint.envMapIntensity = lerp(1.0, 0.12, t);
+    this.exterior.paint.envMapIntensity = lerp(0.24, 0.05, t);
     const mf = lerp(1, 0.12, t);
     this.exterior.mirrorFace.color.setRGB(0.1 * mf, 0.125 * mf, 0.145 * mf);
     this.glass.uniforms.uNight.value = t;
@@ -314,8 +325,9 @@ export class Engine {
 
     const car = this.car;
     this.world.stream(car.s);
+    this._aimLamps(dt);
     this.camWorld.getWorldPosition(this._v);
-    this.world.update(dt, { position: this._v }, this._fwd, car.v);
+    this.world.update(dt, this._v, this._fwd, car.v, this.lamps);
 
     this.wiper.setPeriod(this.fastWipers || car.v > 24 ? 1.5 : 3.3);
     this.wiper.step(dt);
@@ -323,7 +335,7 @@ export class Engine {
     this.startPulse = damp(this.startPulse, 0, 2.5, dt);
     this.startPressed = damp(this.startPressed, 0, 9, dt);
     this.interior.update({
-      steer: clamp(Math.atan(2.45 * p.k) * 13.5 + car.yaw * 2.2, -2.4, 2.4) + (Math.sin(this.time * 31) * 0.05 + Math.sin(this.time * 47) * 0.03) * car.shake,
+      steer: clamp(Math.atan(2.45 * p.k) * 13.5 + car.steer, -2.4, 2.4) + (Math.sin(this.time * 31) * 0.05 + Math.sin(this.time * 47) * 0.03) * car.shake,
       rpm: this.rpm,
       speed: car.v,
       wiper: this.wiper.angle(),
@@ -337,6 +349,22 @@ export class Engine {
       this._screenAt = this.time;
       this._drawScreen();
     }
+  }
+
+  /** Two headlamps at the front corners; the beams swivel a few degrees into the bend ahead. */
+  _aimLamps(dt) {
+    const m = this.carObj.matrixWorld.elements;
+    const L = this.lamps;
+    L.left.set(CAR_CENTER_X - LAMP_X, LAMP_Y, LAMP_Z).applyMatrix4(this.carObj.matrixWorld);
+    L.right.set(CAR_CENTER_X + LAMP_X, LAMP_Y, LAMP_Z).applyMatrix4(this.carObj.matrixWorld);
+    const ahead = this.car.free ? 0 : this.road.curvature(this.car.s + 30);
+    this.beamYaw = damp(this.beamYaw, clamp(ahead * 9, -0.2, 0.2), 4, dt);
+    const c = Math.cos(this.beamYaw);
+    const s = Math.sin(this.beamYaw);
+    // car axes in world space: +X right, +Y up, -Z forward
+    L.u.set(m[4], m[5], m[6]).normalize();
+    L.f.set(-m[8] * c + m[0] * s, -m[9] * c + m[1] * s, -m[10] * c + m[2] * s).normalize();
+    L.r.crossVectors(L.f, L.u).normalize();
   }
 
   /** Seven-speed auto: just enough of a gearbox to make the tach dance. */
@@ -476,7 +504,7 @@ export class Engine {
     const my = 178;
     g.save();
     g.beginPath();
-    g.roundRect(326, 14, 300, 196, 14);
+    roundRect(g, 326, 14, 300, 196, 14);
     g.fillStyle = '#0e1418';
     g.fill();
     g.clip();
