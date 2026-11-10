@@ -77,6 +77,30 @@ test.describe("drive view", () => {
     expect(varied).toBeGreaterThan(12);
   });
 
+  test("surface textures are drawn on the GPU at start-up: four of them, each a real pattern", async ({ page }) => {
+    await openDrive(page);
+    const detail = await page.evaluate(() => {
+      const e = (window as any).__drive.engine;
+      const out: Record<string, { size: number; mips: boolean; values: number }> = {};
+      for (const name of ["world", "litter", "asphalt", "cabin"]) {
+        const tex = e.detail[name];
+        const rt = tex.renderTarget;
+        // read a strip back: flat colour would mean the generator shader failed
+        const px = new Uint8Array(4 * 64 * 64);
+        e.renderer.readRenderTargetPixels(rt, 0, 0, 64, 64, px);
+        const seen = new Set<number>();
+        for (let i = 0; i < px.length; i += 4) seen.add((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]);
+        out[name] = { size: rt.width, mips: tex.generateMipmaps, values: seen.size };
+      }
+      return { out, want: e.quality.detail };
+    });
+    for (const name of ["world", "litter", "asphalt", "cabin"]) {
+      expect(detail.out[name].size, name).toBe(detail.want);
+      expect(detail.out[name].mips, name).toBe(true);
+      expect(detail.out[name].values, name).toBeGreaterThan(40);
+    }
+  });
+
   test("scrolling drives through the sections, one HUD panel at a time", async ({ page }) => {
     await openDrive(page);
     const title = page.locator(".hud__title");

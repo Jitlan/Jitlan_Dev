@@ -68,27 +68,6 @@ function canvas(w, h) {
   return c;
 }
 
-function leatherGrain() {
-  const c = canvas(256, 256);
-  const g = c.getContext('2d');
-  const rand = mulberry32(42);
-  g.fillStyle = '#808080';
-  g.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 2600; i++) {
-    const x = rand() * 256;
-    const y = rand() * 256;
-    const r = 1.5 + rand() * 3.5;
-    const v = Math.floor(96 + rand() * 80);
-    g.fillStyle = `rgba(${v},${v},${v},0.5)`;
-    g.beginPath();
-    g.ellipse(x, y, r, r * (0.6 + rand() * 0.6), rand() * 3.14, 0, TAU);
-    g.fill();
-  }
-  const t = new CanvasTexture(c);
-  t.wrapS = t.wrapT = RepeatWrapping;
-  return t;
-}
-
 function stitchTexture() {
   const c = canvas(64, 8);
   const g = c.getContext('2d');
@@ -382,27 +361,80 @@ function box(w, h, d, mat, x, y, z) {
   return m;
 }
 
+/**
+ * Give a standard material a surface: pebbled hide, suede nap or a blasted metal finish, from the
+ * generated cabin texture (textures.js). It is laid on in the part's own space with a triplanar
+ * lookup: the cabin's parts have no useful UVs, and this way the grain turns with the steering wheel.
+ * @param {{tile:number, channel?:'b'|'a', tone?:number, rough?:number, bump?:number}} o
+ *   tile: metres per repeat · channel: which pattern drives tone and roughness · bump: relief (hide only)
+ */
+function grained(material, tex, o) {
+  const f = (v) => Number(v || 0).toFixed(4);
+  const ch = o.channel || 'b';
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.tGrain = { value: tex };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGrainP;\nvarying vec3 vGrainN;\nvarying mat3 vGrainM;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGrainP = position;\nvGrainN = normal;\nvGrainM = normalMatrix;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGrainP;\nvarying vec3 vGrainN;\nvarying mat3 vGrainM;\nuniform sampler2D tGrain;')
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        vec3 gW = pow(abs(normalize(vGrainN)), vec3(6.0));
+        gW /= gW.x + gW.y + gW.z;
+        vec3 gP = vGrainP / ${f(o.tile)};
+        vec3 gDx = dFdx(gP);
+        vec3 gDy = dFdy(gP);
+        // most of a surface faces one way: skip the projections that would barely count
+        vec4 gX = gW.x > 0.02 ? textureGrad(tGrain, gP.zy, gDx.zy, gDy.zy) : vec4(0.5);
+        vec4 gY = gW.y > 0.02 ? textureGrad(tGrain, gP.xz, gDx.xz, gDy.xz) : vec4(0.5);
+        vec4 gZ = gW.z > 0.02 ? textureGrad(tGrain, gP.xy, gDx.xy, gDy.xy) : vec4(0.5);
+        float gTone = gX.${ch} * gW.x + gY.${ch} * gW.y + gZ.${ch} * gW.z - 0.5;
+        diffuseColor.rgb *= 1.0 + ${f(o.tone)} * gTone;`,
+      )
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor + ${f(o.rough)} * gTone, 0.05, 1.0);`);
+    if (o.bump) {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+        {
+          vec2 nA = gX.rg * 2.0 - 1.0;
+          vec2 nB = gY.rg * 2.0 - 1.0;
+          vec2 nC = gZ.rg * 2.0 - 1.0;
+          vec3 relief = gW.x * vec3(0.0, nA.y, nA.x) + gW.y * vec3(nB.x, 0.0, nB.y) + gW.z * vec3(nC.x, nC.y, 0.0);
+          normal = normalize(normal + vGrainM * relief * ${f(o.bump)});
+        }`,
+      );
+    }
+  };
+  material.customProgramCacheKey = () => `grain:${ch}:${f(o.tile)}:${f(o.tone)}:${f(o.rough)}:${f(o.bump)}`;
+  return material;
+}
+
 /* ==========================================================================
    Interior
    ========================================================================== */
 export class Interior {
-  constructor() {
+  /** @param {object} cabinTex the generated cabin detail texture (textures.js) */
+  constructor(cabinTex) {
     this.scene = new Scene();
     this.night = 0;
     this.textures = [];
 
-    const grain = leatherGrain();
-    grain.repeat.set(1, 1);
     const stitchTex = stitchTexture();
+    const hide = { tile: 0.28, tone: 0.34, rough: 0.08, bump: 0.55 };
+    const nap = { tile: 0.2, channel: 'a', tone: 0.45 };
+    const blasted = { tile: 0.11, channel: 'a', tone: 0.12, rough: 0.3 };
 
     const mat = (this.mat = {
       // leather is matt: high roughness and almost no pick-up from the sky
-      leather: new MeshStandardMaterial({ color: '#432414', roughness: 0.95, envMapIntensity: 0.1, bumpMap: grain, bumpScale: 0.6, side: DoubleSide }),
-      leatherDark: new MeshStandardMaterial({ color: '#2d190e', roughness: 0.97, envMapIntensity: 0.08, bumpMap: grain, bumpScale: 0.6, side: DoubleSide }),
-      suede: new MeshStandardMaterial({ color: '#21150e', roughness: 0.96, side: DoubleSide }),
+      leather: grained(new MeshStandardMaterial({ color: '#432414', roughness: 0.93, envMapIntensity: 0.1, side: DoubleSide }), cabinTex, hide),
+      leatherDark: grained(new MeshStandardMaterial({ color: '#2d190e', roughness: 0.95, envMapIntensity: 0.08, side: DoubleSide }), cabinTex, hide),
+      suede: grained(new MeshStandardMaterial({ color: '#21150e', roughness: 0.96, side: DoubleSide }), cabinTex, nap),
       satin: new MeshStandardMaterial({ color: '#17171a', roughness: 0.6, metalness: 0.3, envMapIntensity: 0.4 }),
-      alu: new MeshStandardMaterial({ color: '#aeb2b6', roughness: 0.44, metalness: 1, envMapIntensity: 0.65 }),
-      aluDark: new MeshStandardMaterial({ color: '#63676b', roughness: 0.52, metalness: 1, envMapIntensity: 0.6 }),
+      alu: grained(new MeshStandardMaterial({ color: '#aeb2b6', roughness: 0.44, metalness: 1, envMapIntensity: 0.65 }), cabinTex, blasted),
+      aluDark: grained(new MeshStandardMaterial({ color: '#63676b', roughness: 0.52, metalness: 1, envMapIntensity: 0.6 }), cabinTex, blasted),
       black: new MeshStandardMaterial({ color: '#0d0d0f', roughness: 0.55, side: DoubleSide }),
       gloss: new MeshStandardMaterial({ color: '#050506', roughness: 0.3, metalness: 0.2, envMapIntensity: 0.4 }),
       rubber: new MeshStandardMaterial({ color: '#060607', roughness: 0.8 }),

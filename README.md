@@ -59,6 +59,7 @@ dist/
     road.js             endless deterministic road: curvature, hills, hillside
     world.js            terrain, trees, rails, signs, sky, rain, leaves
     interior.js         cabin, gauges, wheel, wipers, bonnet
+    textures.js         surface detail (rock, leaves, bark, asphalt, leather), drawn on the GPU at load
     glass.js            rain-on-windshield shader, wiper timing
     hud.js              scroll → HUD panels, speed cluster, waypoint nav
     game.js             push-to-start game: controls, arrival, quotes, leaderboard
@@ -85,6 +86,11 @@ Things you're most likely to tweak:
   `makeHeadUniforms()` in `world.js`.
 - **Wipers** (pivots, blade reach, sweep) are `WIPERS` in `interior.js`; the rain shader
   clears exactly those two fans, so the blades and the dry glass always agree.
+- **Surface detail.** Nothing is downloaded: `textures.js` draws four small tiling textures
+  at start-up. How strongly each is laid over the flat low-poly colours is `GLSL_DETAIL` in
+  `world.js` (hillside, trees, timber), the top of the road shader there (asphalt), and the
+  `hide` / `nap` / `blasted` settings at the top of `Interior` (cabin). Texture size and
+  filtering per device are `detail` and `aniso` in `QUALITY` in `engine.js`.
 - **Colours and time of day** are `PALETTE` in `world.js`; the cabin's materials are at
   the top of `Interior` in `interior.js`.
 

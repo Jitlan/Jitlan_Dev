@@ -167,12 +167,106 @@ function shareHead(uniforms, head) {
   for (const k of Object.keys(head)) uniforms[k] = head[k];
 }
 
-/** Teach a built-in Lambert material about the headlamps. */
-function lightByHeadlamps(material, head) {
+/* --------------------------------------------------------------------------
+   Surface detail
+   --------------------------------------------------------------------------
+   The models are flat-shaded facets with one colour each. These snippets lay
+   the generated detail textures (textures.js) over that colour, in world
+   space, so the facets keep their shape and tone but read as rock, leaf
+   litter, foliage, bark or timber. Each facet faces one way, so the texture is
+   simply projected along the facet's dominant axis: one lookup, no blending.
+   -------------------------------------------------------------------------- */
+const LEAF_LITTER = ['#8f2a16', '#b5501a', '#c88a1c'].map((h) => `vec3(${lin(h).map((v) => v.toFixed(4)).join(', ')})`);
+
+const GLSL_DETAIL = {
+  // shared: which way the facet faces, the projected coordinate and its screen-space gradient
+  // (taken from the view-space position, which stays precise miles from the origin)
+  project: /* glsl */ `
+    mat3 dToWorld = transpose(mat3(viewMatrix));
+    vec3 dN = abs(dToWorld * normal);
+    vec3 dPx = dToWorld * dFdx(vViewPosition);
+    vec3 dPy = dToWorld * dFdy(vViewPosition);
+    vec2 dUv, dGx, dGy;
+    if (dN.y >= dN.x && dN.y >= dN.z) { dUv = vHeadWorld.xz; dGx = dPx.xz; dGy = dPy.xz; }
+    else if (dN.x >= dN.z) { dUv = vHeadWorld.zy; dGx = dPx.zy; dGy = dPy.zy; }
+    else { dUv = vHeadWorld.xy; dGx = dPx.xy; dGy = dPy.xy; }
+  `,
+  // hillside: bedded, fractured rock where it is steep; soil, stones and fallen leaves where it is not
+  ground: /* glsl */ `
+    {
+      float rockK = 1.0 - smoothstep(0.58, 0.8, dN.y);
+      vec4 dA = textureGrad(tDetail, dUv / 3.2, dGx / 3.2, dGy / 3.2);
+      vec3 base = diffuseColor.rgb;
+      vec3 rockCol = base;
+      vec3 soilCol = base;
+      if (rockK > 0.0) {
+        // a second, much larger lookup keeps a big face from showing the repeat
+        float far = textureGrad(tDetail, dUv / 13.0 + 0.31, dGx / 13.0, dGy / 13.0).r;
+        rockCol *= 0.44 + 1.12 * (dA.r * 0.72 + far * 0.28);
+      }
+      if (rockK < 1.0) {
+        vec4 dL = textureGrad(tLitter, dUv / 1.8, dGx / 1.8, dGy / 1.8);
+        soilCol *= 0.5 + dA.a;
+        float mx = max(base.r, max(base.g, base.b));
+        float mn = min(base.r, min(base.g, base.b));
+        float earthy = smoothstep(0.1, 0.35, (mx - mn) / max(mx, 1e-4)); // fewer leaves settle on gravel
+        vec3 leaf = dL.g < 0.5 ? mix(${LEAF_LITTER[0]}, ${LEAF_LITTER[1]}, dL.g * 2.0) : mix(${LEAF_LITTER[1]}, ${LEAF_LITTER[2]}, dL.g * 2.0 - 1.0);
+        soilCol = mix(soilCol, leaf * (0.5 + dL.b), dL.r * mix(0.2, 0.9, earthy));
+      }
+      diffuseColor.rgb = mix(soilCol, rockCol, rockK);
+    }
+  `,
+  // trees: furrowed bark on the trunk, clumps of leaves on the canopy
+  tree: /* glsl */ `
+    if (vBark > 0.5) {
+      vec2 bs = vec2(0.55, 1.7);
+      diffuseColor.rgb *= 0.4 + 1.2 * textureGrad(tDetail, dUv / bs, dGx / bs, dGy / bs).b;
+    } else {
+      float leafy = textureGrad(tDetail, dUv / 2.6, dGx / 2.6, dGy / 2.6).g;
+      diffuseColor.rgb *= 0.5 + leafy;
+      // leaves that catch the light go a shade more golden, the ones in shadow a shade redder
+      diffuseColor.rgb *= mix(vec3(0.94, 0.86, 1.0), vec3(1.1, 1.06, 0.7), smoothstep(0.25, 0.8, leafy));
+    }
+  `,
+  // rails, posts and the café: boards with grain and joints wherever the colour is timber,
+  // weathering streaks on steel, stone and the roof
+  prop: /* glsl */ `
+    {
+      vec3 base = diffuseColor.rgb;
+      float mx = max(base.r, max(base.g, base.b));
+      float wood = smoothstep(0.22, 0.4, (base.r - base.b) / max(mx, 1e-4));
+      bool flatTop = dN.y >= dN.x && dN.y >= dN.z;
+      // boards lie flat along a wall and run the length of the deck; the grain's fast axis crosses them
+      vec2 bu = flatTop ? dUv : dUv.yx;
+      vec2 bgx = flatTop ? dGx : dGx.yx;
+      vec2 bgy = flatTop ? dGy : dGy.yx;
+      vec2 bs = vec2(0.42, 2.2);
+      float grain = textureGrad(tDetail, bu / bs, bgx / bs, bgy / bs).b;
+      float across = bu.x / 0.21;
+      float aw = (abs(bgx.x) + abs(bgy.x)) / 0.21;
+      float joint = smoothstep(0.45 - aw, 0.45 + aw, abs(fract(across) - 0.5)) * (1.0 - smoothstep(0.15, 0.45, aw));
+      float tone = 0.86 + 0.28 * fract(sin(floor(across) * 91.7 + 3.1) * 43758.5);
+      vec3 timber = base * (0.5 + grain) * tone * (1.0 - 0.55 * joint);
+      vec3 other = base * (0.74 + 0.52 * textureGrad(tDetail, dUv / 2.1, dGx / 2.1, dGy / 2.1).r);
+      diffuseColor.rgb = mix(other, timber, wood);
+    }
+  `,
+};
+
+/**
+ * Teach a built-in Lambert material about the headlamps and, optionally, what its surface is made of.
+ * @param {{kind: 'ground'|'tree'|'prop', world: object, litter: object}} [detail]
+ */
+function lightByHeadlamps(material, head, detail = null) {
+  const kind = detail ? detail.kind : '';
   material.onBeforeCompile = (shader) => {
     shareHead(shader.uniforms, head);
+    if (detail) {
+      shader.uniforms.tDetail = { value: detail.world };
+      shader.uniforms.tLitter = { value: detail.litter };
+    }
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vHeadWorld;')
+      .replace('#include <common>', `#include <common>\nvarying vec3 vHeadWorld;${kind === 'tree' ? '\nattribute float aBark;\nvarying float vBark;' : ''}`)
       .replace(
         '#include <project_vertex>',
         `#include <project_vertex>
@@ -180,10 +274,14 @@ function lightByHeadlamps(material, head) {
         #ifdef USE_INSTANCING
           headWorld = instanceMatrix * headWorld;
         #endif
-        vHeadWorld = (modelMatrix * headWorld).xyz;`,
+        vHeadWorld = (modelMatrix * headWorld).xyz;${kind === 'tree' ? '\nvBark = aBark;' : ''}`,
       );
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vHeadWorld;\nuniform vec3 uLampL, uLampR;\n${GLSL_HEAD}`)
+      .replace(
+        '#include <common>',
+        `#include <common>\nvarying vec3 vHeadWorld;\nuniform vec3 uLampL, uLampR;\n${detail ? 'uniform sampler2D tDetail, tLitter;\n' : ''}${kind === 'tree' ? 'varying float vBark;\n' : ''}${GLSL_HEAD}`,
+      )
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${detail ? GLSL_DETAIL.project + GLSL_DETAIL[kind] : ''}`)
       .replace(
         '#include <lights_fragment_end>',
         `#include <lights_fragment_end>
@@ -197,7 +295,7 @@ function lightByHeadlamps(material, head) {
         }`,
       );
   };
-  material.customProgramCacheKey = () => 'headlamps';
+  material.customProgramCacheKey = () => `headlamps:${kind}`;
   return material;
 }
 
@@ -271,7 +369,7 @@ function makeSkyMaterial() {
 /* --------------------------------------------------------------------------
    Wet asphalt
    -------------------------------------------------------------------------- */
-function makeRoadMaterial(head) {
+function makeRoadMaterial(head, asphalt) {
   const mat = new ShaderMaterial({
     fog: true,
     uniforms: UniformsUtils.merge([
@@ -289,16 +387,19 @@ function makeRoadMaterial(head) {
         uHalfWidth: { value: W },
         uFinish: { value: -1e6 },
         uTime: { value: 0 },
+        tAsphalt: { value: null },
       },
     ]),
     vertexShader: /* glsl */ `
       varying vec2 vUv;
       varying vec3 vWorld;
+      varying vec3 vRel;
       #include <fog_pars_vertex>
       void main() {
         vUv = uv;
         vec4 wp = modelMatrix * vec4(position, 1.0);
         vWorld = wp.xyz;
+        vRel = wp.xyz - cameraPosition; // small numbers: clean screen-space gradients for the texture lookups
         vec4 mvPosition = viewMatrix * wp;
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -309,8 +410,10 @@ function makeRoadMaterial(head) {
       uniform vec3 uAsphalt, uAsphalt2, uYellow, uWhite, uLeafA, uLeafB, uLeafC, uSky, uAmbient;
       uniform vec3 uLampL, uLampR;
       uniform float uHalfWidth, uTime, uFinish;
+      uniform sampler2D tAsphalt;
       varying vec2 vUv;
       varying vec3 vWorld;
+      varying vec3 vRel;
       #include <fog_pars_fragment>
       ${GLSL_NOISE}
       ${GLSL_HEAD}
@@ -320,7 +423,13 @@ function makeRoadMaterial(head) {
         float fw = fwidth(x) * 1.2 + 0.004;
         vec2 wp = vWorld.xz;
 
-        vec3 alb = mix(uAsphalt, uAsphalt2, noise2(wp * 9.0) * 0.55 + fbm2(wp * 0.35) * 0.5);
+        // chippings in binder up close, hairline cracks here and there, slow patchiness over it all
+        vec2 gx = dFdx(vRel.xz);
+        vec2 gy = dFdy(vRel.xz);
+        vec4 chip = textureGrad(tAsphalt, wp / 1.7, gx / 1.7, gy / 1.7);
+        float crack = textureGrad(tAsphalt, wp / 7.3 + 0.21, gx / 7.3, gy / 7.3).a;
+        vec3 alb = mix(uAsphalt, uAsphalt2, chip.b * 1.05 + fbm2(wp * 0.35) * 0.5 - 0.16);
+        alb *= 1.0 - 0.7 * crack;
         float track = ramp(0.55, 0.15, abs(abs(ax - 1.85) - 0.78));
         alb *= 1.0 - 0.12 * track;
 
@@ -328,8 +437,9 @@ function makeRoadMaterial(head) {
         float wear = 0.5 + 0.5 * smoothstep(0.3, 0.7, noise2(wp * 3.0) * 0.55 + noise2(wp * 0.6) * 0.5);
         float yl = ramp(0.06 + fw, 0.06 - fw, abs(ax - 0.14));
         float wl = ramp(0.065 + fw, 0.065 - fw, abs(ax - (uHalfWidth - 0.34)));
-        alb = mix(alb, uYellow, yl * wear);
-        alb = mix(alb, uWhite, wl * wear);
+        float tooth = 0.72 + 0.56 * chip.b; // paint takes the texture of what it's laid on
+        alb = mix(alb, uYellow * tooth, yl * wear);
+        alb = mix(alb, uWhite * tooth, wl * wear);
 
         // chequered finish line across the road at the end of the course
         float fs = vUv.y - uFinish;
@@ -357,7 +467,9 @@ function makeRoadMaterial(head) {
         float puddle = smoothstep(0.5, 0.7, fbm2(wp * 0.16 + 3.7)) * (0.45 + 0.55 * smoothstep(1.4, uHalfWidth, ax) + 0.4 * track);
         puddle = clamp(puddle, 0.0, 1.0);
         float rip = 0.1 * (1.0 - puddle * 0.7);
-        vec3 N = normalize(vec3((noise2(wp * 5.0 + uTime * 0.7) - 0.5) * rip, 1.0, (noise2(wp * 5.0 + 31.0 - uTime * 0.5) - 0.5) * rip));
+        // wet chippings scatter the sky's reflection; a puddle fills them in and lies flat
+        vec2 rough = (chip.rg - 0.5) * 0.9 * (1.0 - puddle) * (1.0 - leaf);
+        vec3 N = normalize(vec3((noise2(wp * 5.0 + uTime * 0.7) - 0.5) * rip + rough.x, 1.0, (noise2(wp * 5.0 + 31.0 - uTime * 0.5) - 0.5) * rip + rough.y));
         float fres = pow(1.0 - max(dot(N, V), 0.0), 5.0);
         float shine = (0.3 + 0.62 * puddle) * (1.0 - leaf * 0.85);
         vec3 col = alb * uAmbient * (1.0 - 0.3 * puddle);
@@ -374,6 +486,7 @@ function makeRoadMaterial(head) {
     `,
   });
   shareHead(mat.uniforms, head);
+  mat.uniforms.tAsphalt.value = asphalt;
   return mat;
 }
 
@@ -535,7 +648,8 @@ function makeLeafMaterial(head) {
 function mergeColored(parts) {
   const pos = [];
   const col = [];
-  for (const { geo, shade } of parts) {
+  const bark = [];
+  for (const { geo, shade, isBark } of parts) {
     const g = geo.index ? geo.toNonIndexed() : geo;
     const p = g.attributes.position;
     let lo = Infinity;
@@ -551,6 +665,7 @@ function mergeColored(parts) {
       pos.push(x, y, z);
       const c = shade((y - lo) / Math.max(1e-4, hi - lo), x, y, z);
       col.push(c[0], c[1], c[2]);
+      bark.push(isBark ? 1 : 0);
     }
     if (g !== geo) g.dispose();
     geo.dispose();
@@ -558,6 +673,7 @@ function mergeColored(parts) {
   const out = new BufferGeometry();
   out.setAttribute('position', new Float32BufferAttribute(pos, 3));
   out.setAttribute('color', new Float32BufferAttribute(col, 3));
+  out.setAttribute('aBark', new Float32BufferAttribute(bark, 1)); // tells the shader trunk from canopy
   out.computeVertexNormals();
   out.computeBoundingSphere();
   return out;
@@ -593,7 +709,7 @@ function blob(x, y, z, sx, sy, sz, detail) {
 function trunk(height, r0, r1) {
   const g = new CylinderGeometry(r1, r0, height, 6, 1, true);
   g.translate(0, height / 2, 0);
-  return { geo: g, shade: trunkShade };
+  return { geo: g, shade: trunkShade, isBark: true };
 }
 
 function makeTreeGeometries() {
@@ -901,8 +1017,9 @@ export class World {
   /**
    * @param {import('./road.js').Road} road
    * @param {{trees:number, rain:number, leaves:number, view:number}} quality
+   * @param {{world: object, litter: object, asphalt: object}} detail generated detail textures (textures.js)
    */
-  constructor(road, quality) {
+  constructor(road, quality, detail) {
     this.road = road;
     this.quality = quality;
     this.scene = new Scene();
@@ -928,11 +1045,11 @@ export class World {
     this.head = makeHeadUniforms();
 
     // materials shared by every chunk
-    const lit = (m) => lightByHeadlamps(m, this.head);
-    this.roadMat = makeRoadMaterial(this.head);
-    this.groundMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true }));
-    this.treeMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true }));
-    this.propMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true, side: DoubleSide }));
+    const lit = (m, kind) => lightByHeadlamps(m, this.head, kind ? { kind, world: detail.world, litter: detail.litter } : null);
+    this.roadMat = makeRoadMaterial(this.head, detail.asphalt);
+    this.groundMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'ground');
+    this.treeMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'tree');
+    this.propMat = lit(new MeshLambertMaterial({ vertexColors: true, flatShading: true, side: DoubleSide }), 'prop');
     this.reflectorMat = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
     this.chevronTex = makeChevronTexture();
     this.signMat = lit(

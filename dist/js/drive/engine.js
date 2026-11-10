@@ -25,6 +25,7 @@ import { ROAD, Road } from './road.js';
 import { World, makeEnvScene } from './world.js';
 import { CAR_CENTER_X, Interior, START_BUTTON_POS, buildExterior } from './interior.js';
 import { GlassPass, WiperClock } from './glass.js';
+import { makeDetailTextures } from './textures.js';
 import { clamp, damp, fmtSpeed, lerp, roundRect, smoothstep } from './util.js';
 
 const EYE_HEIGHT = 1.12;
@@ -36,8 +37,8 @@ const GEAR_TOP = [0, 17, 30, 44, 58, 72, 88, 112]; // m/s at the redline, gears 
 const REDLINE = 7400;
 
 const QUALITY = {
-  desktop: { trees: 84, rain: 2200, leaves: 150, view: 470, dprCap: 2, maxPixels: 2.8e6, rtScale: 1, msaa: 0 },
-  mobile: { trees: 46, rain: 1000, leaves: 70, view: 400, dprCap: 2, maxPixels: 1.5e6, rtScale: 0.8, msaa: 0 },
+  desktop: { trees: 84, rain: 2200, leaves: 150, view: 470, dprCap: 2, maxPixels: 2.8e6, rtScale: 1, msaa: 0, detail: 1024, aniso: 8 },
+  mobile: { trees: 46, rain: 1000, leaves: 70, view: 400, dprCap: 2, maxPixels: 1.5e6, rtScale: 0.8, msaa: 0, detail: 512, aniso: 2 },
 };
 
 /**
@@ -114,8 +115,9 @@ export class Engine {
     renderer.setClearColor(0x0b0e11, 1);
 
     this.road = new Road(911);
-    this.world = new World(this.road, this.quality);
-    this.interior = new Interior();
+    this.detail = makeDetailTextures(renderer, this.quality.detail, this.quality.aniso);
+    this.world = new World(this.road, this.quality, this.detail);
+    this.interior = new Interior(this.detail.cabin);
     this.exterior = buildExterior();
     this.glass = new GlassPass();
     this.wiper = new WiperClock();
@@ -554,6 +556,7 @@ export class Engine {
     this.stop();
     this.rt.dispose();
     this.env.dispose();
+    this.detail.dispose();
     this.renderer.dispose();
   }
 }
