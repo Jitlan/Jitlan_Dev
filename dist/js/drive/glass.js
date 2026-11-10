@@ -8,7 +8,7 @@
    ========================================================================== */
 
 import { Mesh, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial, Vector2, Vector3, Vector4 } from '../vendor/three.module.min.js';
-import { GLASS, WIPERS, WIPER_SWEEP } from './interior.js';
+import { GLASS, WIPERS } from './interior.js';
 
 const FRAG = /* glsl */ `
 precision highp float;
@@ -19,7 +19,7 @@ uniform vec2 uProj;
 uniform vec3 uGO, uGU, uGV, uGN;
 uniform vec2 uWipPivot[2];
 uniform vec2 uWipR[2];
-uniform vec2 uSweep;
+uniform vec2 uSweep[2];
 uniform vec4 uCycle;      // x: time into cycle, y: period, z: up-stroke, w: down-stroke
 uniform float uWipOn;
 uniform float uTime;
@@ -128,8 +128,8 @@ void main() {
     float a = atan(p.y, p.x);
     float inside = ramp(uWipR[i].x - 0.006, uWipR[i].x + 0.006, r)
                  * ramp(uWipR[i].y + 0.006, uWipR[i].y - 0.006, r)
-                 * step(uSweep.x, a) * step(a, uSweep.y);
-    float y = clamp((a - uSweep.x) / (uSweep.y - uSweep.x), 0.0, 1.0);
+                 * step(uSweep[i].x, a) * step(a, uSweep[i].y);
+    float y = clamp((a - uSweep[i].x) / (uSweep[i].y - uSweep[i].x), 0.0, 1.0);
     float xe = acos(1.0 - 2.0 * y) / 3.14159265;
     float tUp = xe * uCycle.z;
     float tDn = uCycle.z + (1.0 - xe) * uCycle.w;
@@ -139,7 +139,7 @@ void main() {
     swept = max(swept, inside);
   }
   swept *= uWipOn;
-  float regrow = mix(1.0, clamp(since / 4.6, 0.0, 1.0), swept);
+  float regrow = mix(1.0, clamp(since / 7.0, 0.0, 1.0), swept);
 
   // water
   float wet = uRain * regrow;
@@ -190,7 +190,7 @@ export class GlassPass {
       uGN: { value: new Vector3() },
       uWipPivot: { value: WIPERS.map((w) => new Vector2(w.pivot[0], w.pivot[1])) },
       uWipR: { value: WIPERS.map((w) => new Vector2(w.r0, w.r1)) },
-      uSweep: { value: new Vector2(WIPER_SWEEP[0], WIPER_SWEEP[1]) },
+      uSweep: { value: WIPERS.map((w) => new Vector2(w.sweep[0], w.sweep[1])) },
       uCycle: { value: new Vector4(0, 3, 0.6, 0.6) },
       uWipOn: { value: 1 },
       uTime: { value: 0 },
@@ -263,13 +263,13 @@ export class WiperClock {
     }
   }
 
-  /** Blade angle (radians from parked). */
-  angle() {
+  /** Where the blades are in their stroke: 0 parked … 1 at the top. */
+  stroke() {
     const c = this.c;
     let y = 0;
     if (c < this.up) y = 0.5 - 0.5 * Math.cos((Math.PI * c) / this.up);
     else if (c < this.up + this.down) y = 0.5 - 0.5 * Math.cos(Math.PI * (1 - (c - this.up) / this.down));
-    return WIPER_SWEEP[0] + (WIPER_SWEEP[1] - WIPER_SWEEP[0]) * y;
+    return y;
   }
 
   write(v4) {

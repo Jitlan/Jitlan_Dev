@@ -81,8 +81,10 @@ Things you're most likely to tweak:
   `Road._plan()` there.
 - **Coffee targets** (dose, yield, shot time, milk temperature) are `TARGET` in `cafe.js`;
   the café's verdicts are `CUP_VERDICTS` in `game.js`.
-- **Headlamps** (beam shape, cut-off, colour) are `GLSL_HEAD` and `makeHeadUniforms()` in
-  `world.js`.
+- **Headlamps** (beam shape, cut-off, colour, high beam) are `GLSL_HEAD` and
+  `makeHeadUniforms()` in `world.js`.
+- **Wipers** (pivots, blade reach, sweep) are `WIPERS` in `interior.js`; the rain shader
+  clears exactly those two fans, so the blades and the dry glass always agree.
 - **Colours and time of day** are `PALETTE` in `world.js`; the cabin's materials are at
   the top of `Interior` in `interior.js`.
 

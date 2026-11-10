@@ -43,12 +43,18 @@ export const GLASS = (() => {
   return { origin, u, v, n };
 })();
 
-/* Two tandem wipers, parked pointing at the passenger side. */
+/*
+ * Two tandem wipers, parked pointing at the passenger side. Pivot and blade
+ * reach are in glass coordinates (metres); each sweeps its own arc, in step.
+ * The driver's blade is the long one: it parks above the passenger's, swings
+ * up to stand alongside the A-pillar and clears nearly the full height of the
+ * glass in front of the driver. The passenger's swings past vertical so the
+ * two fans overlap. The rain shader clears exactly these two fans.
+ */
 export const WIPERS = [
-  { pivot: [-0.8, 0.03], r0: 0.13, r1: 0.71 },
-  { pivot: [-0.07, 0.03], r0: 0.12, r1: 0.6 },
+  { pivot: [-0.74, 0.03], r0: 0.12, r1: 1.36, sweep: [0.06, 1.57] },
+  { pivot: [-0.02, 0.03], r0: 0.12, r1: 0.8, sweep: [0.03, 1.92] },
 ];
-export const WIPER_SWEEP = [0.06, 1.5]; // radians, parked → top of stroke
 
 export const START_BUTTON_POS = new Vector3(-0.335, -0.284, -0.626);
 
@@ -406,11 +412,17 @@ export class Interior {
       ambientLine: new MeshBasicMaterial({ color: '#ff9a3c' }),
     });
 
-    this.hemi = new HemisphereLight('#d0d7dc', '#22160f', 1.0);
+    // There's a roof overhead, so the cabin is lit the way a closed car is: a dim bounce
+    // everywhere, daylight coming in low through the windshield onto whatever faces it,
+    // and a little from the side glass.
+    this.hemi = new HemisphereLight('#aab4bb', '#1a110b', 0.5);
     this.scene.add(this.hemi);
-    this.key = new DirectionalLight('#eef3f6', 2.0);
-    this.key.position.set(0.15, 1.0, -1.25); // daylight pouring through the glass
+    this.key = new DirectionalLight('#e8eef2', 1.4);
+    this.key.position.set(0.05, 0.42, -1.0);
     this.scene.add(this.key);
+    this.side = new DirectionalLight('#dfe6ea', 0.22);
+    this.side.position.set(-1.0, 0.25, -0.2);
+    this.scene.add(this.side);
     this.glow = new PointLight('#ffb070', 0, 0.9, 2);
     this.glow.position.set(0, -0.2, -0.62);
     this.scene.add(this.glow);
@@ -621,6 +633,12 @@ export class Interior {
       cluster.add(g);
     }
 
+    // main-beam tell-tale: the little blue lamp that's on whenever the high beams are
+    this.beamLamp = new MeshBasicMaterial({ color: '#16304f' });
+    const lamp = new Mesh(new CircleGeometry(0.0042, 20), this.beamLamp);
+    lamp.position.set(-0.05, 0.047, 0.0052);
+    cluster.add(lamp);
+
     // digital readout set into the tach
     const dc = canvas(256, 96);
     this.digitalCtx = dc.getContext('2d');
@@ -790,12 +808,27 @@ export class Interior {
   /* --------------------------------------- pillars, doors, floor, mirror */
   _buildShell() {
     const m = this.mat;
-    // A-pillars (no roof header: it sits above the frame in every layout)
-    this.add(beam(new Vector3(-0.478, -0.3, -1.36), new Vector3(-0.432, 0.43, -0.2), 0.05, 0.085, m.suede));
-    this.add(beam(new Vector3(1.198, -0.3, -1.36), new Vector3(1.152, 0.43, -0.2), 0.05, 0.085, m.suede));
+    // A-pillars, running up the edge of the glass to the header rail
+    this.add(beam(new Vector3(-0.478, -0.3, -1.36), new Vector3(-0.428, 0.5, -0.09), 0.05, 0.085, m.suede));
+    this.add(beam(new Vector3(1.198, -0.3, -1.36), new Vector3(1.148, 0.5, -0.09), 0.05, 0.085, m.suede));
     // dash end caps where it meets the doors
     this.add(box(0.012, 0.6, 0.76, m.leatherDark, -0.446, -0.52, -0.98));
     this.add(box(0.012, 0.6, 0.76, m.leatherDark, 1.166, -0.52, -0.98));
+
+    // Header rail, roof lining, side rails and the driver's sun visor. From the normal seat
+    // these sit just above the frame; from the pulled-back phone view the header shows as a
+    // band across the top, which is what tells you there's a roof on the car.
+    const ROOF_Y = 0.5;
+    const ROOF_Z = -0.09; // where the glass meets the roof
+    this.add(box(1.66, 0.07, 0.13, m.suede, CAR_CENTER_X, ROOF_Y, ROOF_Z));
+    const lining = new Mesh(new PlaneGeometry(1.7, 1.7), m.suede);
+    lining.rotation.x = Math.PI / 2;
+    lining.position.set(CAR_CENTER_X, ROOF_Y + 0.03, ROOF_Z + 0.82);
+    this.add(lining);
+    for (const x of [-0.455, 1.175]) this.add(box(0.07, 0.08, 1.7, m.suede, x, ROOF_Y - 0.01, ROOF_Z + 0.82));
+    const visor = box(0.42, 0.012, 0.16, m.leatherDark, -0.02, ROOF_Y - 0.035, ROOF_Z + 0.1);
+    visor.rotation.x = 0.12;
+    this.add(visor);
 
     // door cards
     for (const [x, sx] of [
@@ -862,18 +895,21 @@ export class Interior {
   /* -------------------------------------------------------------- wipers */
   _buildWipers() {
     const m = this.mat;
-    const basis = new Matrix4().makeBasis(GLASS.u, GLASS.v, GLASS.n.clone().negate());
+    // u × v = n, so this is a proper rotation: local X runs across the glass, local Y up it,
+    // and a turn about local Z is an angle measured in the plane of the glass, which is how
+    // the rain shader measures it too.
+    const basis = new Matrix4().makeBasis(GLASS.u, GLASS.v, GLASS.n);
     const q = new Quaternion().setFromRotationMatrix(basis);
     this.wipers = [];
     for (const w of WIPERS) {
       const mount = new Group();
       mount.position.copy(GLASS.origin).addScaledVector(GLASS.u, w.pivot[0]).addScaledVector(GLASS.v, w.pivot[1]);
-      mount.position.addScaledVector(GLASS.n, 0.012); // just outside the glass
+      mount.position.addScaledVector(GLASS.n, -0.012); // just outside the glass (n points into the cabin)
       mount.quaternion.copy(q);
       const arm = new Group();
       mount.add(arm);
       const mid = (w.r0 + w.r1) / 2;
-      const shaft = box(mid, 0.012, 0.008, m.rubber, mid / 2, 0, 0.004);
+      const shaft = box(mid, 0.012, 0.008, m.rubber, mid / 2, 0, -0.004);
       arm.add(shaft);
       const blade = box(w.r1 - w.r0, 0.016, 0.01, m.rubber, mid, 0, 0);
       arm.add(blade);
@@ -881,6 +917,7 @@ export class Interior {
       hubCap.rotation.x = Math.PI / 2;
       arm.add(hubCap);
       this.add(mount);
+      arm.userData.sweep = w.sweep;
       this.wipers.push(arm);
     }
   }
@@ -892,9 +929,11 @@ export class Interior {
 
   setNight(t) {
     this.night = t;
-    this.hemi.intensity = lerp(1.0, 0.12, t);
-    this.key.intensity = lerp(2.0, 0.06, t);
-    this.scene.environmentIntensity = lerp(1.0, 0.1, t);
+    this.hemi.intensity = lerp(0.5, 0.1, t);
+    this.key.intensity = lerp(1.4, 0.05, t);
+    this.side.intensity = lerp(0.22, 0.02, t);
+    this.beamLamp.color.setRGB(0.12 + 0.5 * t, 0.2 + 0.6 * t, 0.35 + 0.65 * t).multiplyScalar(t > 0.5 ? 1 : 0.25);
+    this.scene.environmentIntensity = lerp(0.5, 0.08, t);
     this.glow.intensity = lerp(0, 0.05, t);
     const face = lerp(0.82, 1.0, t);
     for (const f of this.gaugeFaces) f.color.setRGB(face, face, face);
@@ -914,7 +953,7 @@ export class Interior {
     this.wheel.rotation.z = -s.steer;
     this.needles.rpm(s.rpm / 9000);
     this.needles.speed((s.speed * UNITS.perMs) / this.speedMax);
-    for (const w of this.wipers) w.rotation.z = s.wiper;
+    for (const w of this.wipers) w.rotation.z = lerp(w.userData.sweep[0], w.userData.sweep[1], s.wiper);
 
     // the start button breathes until somebody presses it
     const breathe = 0.5 + 0.5 * Math.sin(s.time * 2.1);
@@ -940,19 +979,32 @@ export function buildExterior() {
   const group = new Group();
   // a deep, dark green; mostly a body colour with a soft sheen rather than a mirror
   const paint = new MeshStandardMaterial({ color: '#0c2f1d', roughness: 0.56, metalness: 0.25, envMapIntensity: 0.24 });
-  const NX = 34;
-  const NZ = 22;
+  // One skin for bonnet, wings and nose: the outer strips of the grid fold straight down
+  // into the flanks and the front, so there's bodywork wherever you look, not a floating lid.
+  const NX = 40;
+  const NZ = 26;
+  const FLANK = 0.07; // share of the grid's width used by each flank
+  const NOSE = 0.08; // share of its length used by the nose
+  const SILL = -1.03; // bottom edge of the body, just clear of the road
   const hood = surface(
     (u, v) => {
-      const xc = lerp(-0.95, 0.95, u); // car-centred
-      const z = lerp(-1.3, -3.35, v);
+      const uu = clamp((u - FLANK) / (1 - 2 * FLANK), 0, 1);
+      const vv = clamp(v / (1 - NOSE), 0, 1);
+      const xc = lerp(-0.95, 0.95, uu); // car-centred
+      const z = lerp(-1.1, -3.35, vv); // starts back under the base of the glass
+      const t = clamp((-z - 1.3) / 2.05, 0, 1);
       const ax = Math.abs(xc);
-      let y = lerp(-0.3, -0.54, Math.pow(v, 1.25));
-      y += 0.165 * Math.exp(-Math.pow((ax - 0.69) / 0.17, 2)) * (1 - 0.3 * v);
+      let y = lerp(-0.3, -0.54, Math.pow(t, 1.25));
+      y += 0.165 * Math.exp(-Math.pow((ax - 0.69) / 0.17, 2)) * (1 - 0.3 * t);
       y += 0.02 * (1 - Math.pow(xc / 0.95, 2));
       y -= 3.2 * Math.pow(Math.max(0, ax - 0.83), 2);
-      y -= 0.22 * Math.pow(Math.max(0, v - 0.82) / 0.18, 2);
-      return [xc + CAR_CENTER_X, y, z];
+      y -= 0.22 * Math.pow(Math.max(0, t - 0.82) / 0.18, 2);
+      const flank = u < FLANK ? 1 - u / FLANK : u > 1 - FLANK ? (u - (1 - FLANK)) / FLANK : 0;
+      const nose = v > 1 - NOSE ? (v - (1 - NOSE)) / NOSE : 0;
+      const drop = Math.max(flank, nose);
+      // a slight tuck-under as the panel drops
+      const tuck = 0.03 * Math.sin(drop * Math.PI * 0.5);
+      return [xc * (1 - (flank > 0 ? tuck / 0.95 : 0)) + CAR_CENTER_X, lerp(y, SILL, drop), z + (nose > 0 ? tuck : 0)];
     },
     NX,
     NZ,
@@ -961,9 +1013,20 @@ export function buildExterior() {
   paint.side = DoubleSide;
   group.add(hoodMesh);
 
-  // cowl panel between bonnet and glass
-  const cowl = new Mesh(new BoxGeometry(1.9, 0.02, 0.14), new MeshStandardMaterial({ color: '#0b0b0c', roughness: 0.7 }));
-  cowl.position.set(CAR_CENTER_X, -0.3, -1.36);
+  // the body carries on back past the doors, up to the window line
+  for (const sx of [-1, 1]) {
+    const door = new Mesh(new BoxGeometry(0.03, 0.82, 2.9), paint);
+    door.position.set(CAR_CENTER_X + sx * 0.94, SILL + 0.41, 0.33);
+    group.add(door);
+  }
+  // and a floor pan, so nothing shows from underneath
+  const pan = new Mesh(new BoxGeometry(1.86, 0.02, 5.2), new MeshStandardMaterial({ color: '#070808', roughness: 0.9 }));
+  pan.position.set(CAR_CENTER_X, SILL, -0.8);
+  group.add(pan);
+
+  // wiper trough between bonnet and glass
+  const cowl = new Mesh(new BoxGeometry(1.9, 0.03, 0.2), new MeshStandardMaterial({ color: '#0b0b0c', roughness: 0.7 }));
+  cowl.position.set(CAR_CENTER_X, -0.288, -1.38);
   group.add(cowl);
 
   // driver's door mirror

@@ -338,7 +338,7 @@ export class Engine {
       steer: clamp(Math.atan(2.45 * p.k) * 13.5 + car.steer, -2.4, 2.4) + (Math.sin(this.time * 31) * 0.05 + Math.sin(this.time * 47) * 0.03) * car.shake,
       rpm: this.rpm,
       speed: car.v,
-      wiper: this.wiper.angle(),
+      wiper: this.wiper.stroke(),
       time: this.time,
       pulse: this.startPulse,
       pressed: this.startPressed,

@@ -120,8 +120,8 @@ float fbm2(vec2 p) {
    --------------------------------------------------------------------------
    Two separate LED units, one per front corner, in a crisp cool white. Each
    throws a dipped beam with a hard horizontal cut-off (kicking up toward the
-   verge) and, at night, a matrix main beam above it that reaches far down
-   the road. The pair swivels a little into bends. Everything that can be lit
+   verge); at night the main beams are on as well, flooding the road far
+   ahead and the trees above it. The pair swivels a little into bends. Everything that can be lit
    by them (road, terrain, trees, signs, rain, leaves) shares these uniforms.
    -------------------------------------------------------------------------- */
 function makeHeadUniforms() {
@@ -156,10 +156,10 @@ float lampBeam(vec3 L) {
   float gap = max(cutY - ay, 0.0) / 0.06;
   float hot = exp(-ax * ax / 0.045) * exp(-gap * gap);
   float low = below * (0.55 * wash + 1.25 * hot) / (1.0 + d2 / 520.0);
-  // matrix main beam: a tight block above the line that carries a long way
-  float rise = (ay - cutY) / 0.075;
-  float high = (1.0 - below) * exp(-ax * ax / 0.03) * exp(-rise * rise) / (1.0 + d2 / 2600.0);
-  return low + uHigh * 0.9 * high;
+  // main beam: a broad, tall flood on top of that, reaching well down the road and up into the trees
+  float rise = (ay - 0.01) / 0.17;
+  float high = exp(-ax * ax / 0.17) * exp(-rise * rise) / (1.0 + d2 / 5200.0);
+  return low + uHigh * 1.3 * high;
 }
 `;
 
