@@ -26,13 +26,12 @@ ships with a library's stock look.
 - **Comes from:** the core. The core *is* the menu, grown.
 - **Phone:** 56px puck → a 292px-wide menu, two columns of 44px items. The current item
   sits on highlighter.
-- **How it opens:** the body grows first, as liquid (a decorative layer behind the menu,
-  with a few beads running ahead of the edge and being absorbed). Once it has nearly
-  settled, the items fade in quickly, in reading order, 14ms apart. Items do not fly.
-- **The puck stays the puck.** Open or closed it is the same ink disc, drawn on top of
-  everything in the menu and separated from the items by a hairline. Open, it widens to
-  a pill that says "Close" beside a cross, so closing reads as a different kind of
-  action from the navigation items above it.
+- **How it opens:** the puck itself grows into the menu on the spread curve, and the
+  items arrive from the puck's corner, nearest first. (A liquid-body variant with
+  fade-in items was tried on the kit and rejected: it read worse than the original.)
+- **The toggle is the top layer.** Menu items pass underneath it, never over it. Open,
+  the cross sits on its own ink disc so it reads as a different kind of action from the
+  navigation items around it.
 - **Desktop:** a rail, 56px ↔ 248px, icons always visible, labels arriving after the
   width settles.
 - **Closes on:** the toggle, Escape, outside press, scroll past 48px, choosing an item.
@@ -71,7 +70,7 @@ text as well.
 
 | Mark | Use | Limit |
 |---|---|---|
-| Highlight | A phrase inside running text | Pen-A or pen-B wash for sides, highlighter otherwise |
+| Highlight | A phrase inside running text | Pen-A or pen-B wash for sides, highlighter otherwise. Text switches to the on-highlighter colour only as the swipe lands, so it is readable before and after |
 | Strike and insert | A value that changed; the old one stays readable | Use `<del>` and `<ins>` |
 | Circle | A standalone figure: a count, a stat, a date | Never inside prose |
 | Margin note | Context beside a value, fun voice, rotated −3° | One per card |
@@ -81,8 +80,11 @@ text as well.
 ## Ceremony
 
 - **Is:** the screen's single fancy moment: the headline value in the fancy voice, plus
-  one mark, on the `ceremony` curve. On the VoteHound boards it is the verdict: the
-  letters gather, the highlighter swipes, the count is circled, a note is written.
+  one mark. The word spawns from liquid: a bead of ink and the letters share one goo
+  filter, the bead draws back, and each letter separates from it in turn, left to
+  right, as the blur falls away. Then the highlighter swipes, the count is circled and
+  a note is written. (Letters flying in from scattered positions, as on the VoteHound
+  boards, was tried and rejected: the scatter reads as random.)
 - **Limit:** once per screen, once per visit. On return it is simply set.
 - **A11y:** the text is real text, present from the start for assistive technology;
   the animation is visual only.

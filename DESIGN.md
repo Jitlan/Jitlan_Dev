@@ -402,13 +402,13 @@ notes are in `@design/docs/components.md`.
 | Component | Comes from | Notes |
 |---|---|---|
 | **Core** | Itself | One per screen. A real `<button>` with `aria-expanded`. 56px closed. Ink when closed; solid or glass when open. |
-| **Core menu** | Core | The core grows into the menu as liquid (56px → 292px wide, radius 28 → 20); items then fade in quickly, in reading order. The puck stays an ink disc on top and becomes the Close control. Closes on Escape, outside press, or scroll. |
+| **Core menu** | Core | The core grows into the menu (56px → 292px wide, radius 28 → 20). Items arrive from the core's corner, nearest first. The toggle is the top layer; open, its cross sits on an ink disc. Closes on Escape, outside press, or scroll. |
 | **Rail** | Core | Desktop form of the same menu: 56px ↔ 248px wide. Labels slide in a beat after the width settles. |
 | **Drop** | Core or another drop | A card, popover or chip. States its origin with `data-origin`. |
 | **Pool / sheet** | Core or a drop | Several drops merged into one surface: a dialog, drawer, detail view. A real `<dialog>`. |
 | **Bead** | Core | A toast or status. Leaves the core, rests, rejoins it. Polite live region. |
 | **Mark** | Ink | Circle, tick, cross, strike-and-insert, swipe, margin note. One of each kind per card at most. |
-| **Ceremony** | The screen's headline value | Fancy voice plus one mark. Once per screen. |
+| **Ceremony** | The screen's headline value | Fancy voice plus one mark. The word separates out of a bead of liquid. Once per screen. |
 | **Tour step** | Core | A drop with a title, one sentence, "Step n of m", Back, Next, Close. `role="dialog"`. Never covers its target. The rest of the page fades back and a pen loop is drawn round the target. |
 | **Buttons, fields, tables** | Rest on paper | Professional voice, solid material, `edge` borders, visible focus ring. They do not spread. A button may take a follow-up: it pulls in to an icon for what it just did, the icon moves once, and the button returns (with the opposite label if the action toggles). |
 
