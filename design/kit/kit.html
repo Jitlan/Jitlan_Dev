@@ -1,0 +1,1160 @@
+<title>Quicksilver Kit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:ital,wght@0,200..800;1,200..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght,BNCE,INFM,SPAC@0,300..800,-100..100,0..100,0..100&display=swap">
+<style>
+/* Layout: one reading column of specimens on paper; the page's own navigation is the
+   core, a puck fixed bottom-right that every floating thing leaves from and returns to. */
+:root {
+  --qs-ink: #0b1220; --qs-paper: #f1f5f9; --qs-card: #ffffff; --qs-muted: #5e6773;
+  --qs-outline: #e2e8f0; --qs-edge: #7c8798;
+  --qs-pen-a: #2563eb; --qs-pen-b: #c70011;
+  --qs-highlighter: #e8c97a; --qs-on-hi: #0b1220;
+  --qs-pen-a-wash: #c9dbfc; --qs-pen-b-wash: #f8cdd1;
+  --qs-success: #00712e; --qs-warning: #a55800;
+  --qs-shadow: rgb(11 18 32 / 0.12);
+  --qs-metal-1: #dfe5ee; --qs-metal-2: #9aa4b2;
+
+  --qs-voice-pro: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --qs-voice-fancy: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --qs-voice-fun: "Shantell Sans", "Comic Neue", "Segoe Print", cursive;
+  --qs-voice-mono: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+  --qs-voice-reading: var(--qs-voice-pro);
+
+  --qs-radius-control: 8px; --qs-radius-card: 10px; --qs-radius-pool: 20px; --qs-radius-core: 28px;
+  --qs-core-size: 56px; --qs-target: 44px;
+  --qs-lift: 0 0 0 1px var(--qs-outline), 0 6px 16px var(--qs-shadow);
+
+  --qs-dur-feedback: 100ms; --qs-dur-fade: 180ms;
+  --qs-dur-settle: 280ms; --qs-dur-gather: 380ms; --qs-dur-spread: 460ms; --qs-dur-ceremony: 800ms;
+  --qs-beat: 300ms;
+  --qs-ease-settle: cubic-bezier(.5, 0, .2, 1);
+  --qs-ease-gather: cubic-bezier(.5, 0, .2, 1);
+  --qs-ease-spread: cubic-bezier(.5, -0.15, .2, 1.25);
+  --qs-ease-ceremony: cubic-bezier(.3, 1.3, .4, 1);
+
+  --qs-glass-blur: 18px; --qs-glass-scrim: 0.78;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --qs-ink: #f1f5f9; --qs-paper: #020617; --qs-card: #0f172a; --qs-muted: #9aa4b2;
+    --qs-outline: #334155; --qs-edge: #6b7a90;
+    --qs-pen-a: #4d8df7; --qs-pen-b: #f87171;
+    --qs-pen-a-wash: #1e3a8a; --qs-pen-b-wash: #7f1d1d;
+    --qs-success: #10b981; --qs-warning: #fbbf24;
+    --qs-shadow: rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --qs-ink: #f1f5f9; --qs-paper: #020617; --qs-card: #0f172a; --qs-muted: #9aa4b2;
+  --qs-outline: #334155; --qs-edge: #6b7a90;
+  --qs-pen-a: #4d8df7; --qs-pen-b: #f87171;
+  --qs-pen-a-wash: #1e3a8a; --qs-pen-b-wash: #7f1d1d;
+  --qs-success: #10b981; --qs-warning: #fbbf24;
+  --qs-shadow: rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --qs-ease-spread: linear(0, 0.041, 0.144, 0.281, 0.43, 0.576, 0.709, 0.822, 0.914, 0.983, 1.032, 1.062, 1.079, 1.084, 1.08, 1.072, 1.061, 1.048, 1.036, 1.025, 1.015, 1.008, 1.002, 0.998, 1);
+    --qs-ease-gather: linear(0, 0.035, 0.119, 0.23, 0.35, 0.468, 0.578, 0.674, 0.757, 0.825, 0.879, 0.921, 0.953, 0.977, 0.993, 1.004, 1.01, 1.014, 1.015, 1.015, 1.014, 1.012, 1.011, 1.009, 1);
+    --qs-ease-ceremony: linear(0, 0.049, 0.174, 0.34, 0.521, 0.696, 0.849, 0.974, 1.065, 1.124, 1.155, 1.163, 1.153, 1.132, 1.104, 1.075, 1.046, 1.022, 1.002, 0.988, 0.979, 0.974, 0.973, 0.975, 1);
+  }
+}
+/* Reduce, don't remove. The attribute is this page's "preview reduced motion" switch. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --qs-dur-settle: 150ms; --qs-dur-gather: 150ms; --qs-dur-spread: 150ms; --qs-dur-ceremony: 150ms; --qs-beat: 0ms;
+    --qs-ease-settle: ease; --qs-ease-gather: ease; --qs-ease-spread: ease; --qs-ease-ceremony: ease; }
+}
+:root[data-motion="reduce"] { --qs-dur-settle: 150ms; --qs-dur-gather: 150ms; --qs-dur-spread: 150ms; --qs-dur-ceremony: 150ms; --qs-beat: 0ms;
+  --qs-ease-settle: ease; --qs-ease-gather: ease; --qs-ease-spread: ease; --qs-ease-ceremony: ease; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root { --qs-glass-blur: 0px; --qs-glass-scrim: 1; }
+}
+:root[data-material="gold"] { --qs-metal-1: #f6e3a1; --qs-metal-2: #c9a23f; }
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--qs-paper); color: var(--qs-ink);
+  font: 400 1.0625rem/1.5 var(--qs-voice-pro);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 2.5rem 7rem;
+}
+main, header.top { max-width: 1040px; margin-inline: auto; }
+main { display: flex; flex-direction: column; gap: 4rem; margin-top: 3rem; }
+h1, h2, h3, p, ul, figure { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+h2 { font-size: 1.5rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.0625rem; font-weight: 700; }
+section { display: flex; flex-direction: column; gap: 1.25rem; scroll-margin-top: 1.5rem; }
+section > .lede { color: var(--qs-muted); max-width: 68ch; }
+section + section { border-top: 1px solid var(--qs-outline); padding-top: 2.5rem; }
+.fancy { font-family: var(--qs-voice-fancy); }
+.fun { font-family: var(--qs-voice-fun); }
+.mono, code, kbd { font-family: var(--qs-voice-mono); font-size: 0.9375em; }
+.muted { color: var(--qs-muted); }
+.small { font-size: 0.9375rem; line-height: 1.45; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+strong { font-weight: 700; }
+a { color: var(--qs-pen-a); text-decoration: underline solid; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+dfn, abbr[title] { font-style: normal; text-decoration: underline wavy var(--qs-muted); text-decoration-thickness: 0.06em; text-underline-offset: 0.22em; cursor: help; }
+mark { background: var(--qs-highlighter); color: var(--qs-on-hi); padding-inline: 0.15em; border-radius: 2px; }
+:focus-visible { outline: 3px solid var(--qs-pen-a); outline-offset: 2px; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.grid > * { min-width: 0; }
+.scroll { overflow-x: auto; }
+
+/* ---------- materials ---------- */
+.solid, .paper, .glass, .metal { background: var(--qs-card); color: var(--qs-ink); border: 1px solid var(--qs-edge); }
+.solid.resting { border-color: var(--qs-outline); }
+.inkmat { background: var(--qs-ink); color: var(--qs-card); border: 1px solid var(--qs-ink); }
+.paper { background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--qs-outline) 27px 28px); }
+@supports (backdrop-filter: blur(1px)) {
+  .glass { background: color-mix(in oklab, var(--qs-card) calc(var(--qs-glass-scrim) * 100%), transparent);
+    backdrop-filter: blur(var(--qs-glass-blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--qs-glass-blur)) saturate(1.4); }
+}
+.metal { color: var(--qs-on-hi); border-color: var(--qs-metal-2);
+  background: radial-gradient(120% 90% at var(--spec-x, 30%) var(--spec-y, 20%), #fff 0%, transparent 55%), linear-gradient(160deg, var(--qs-metal-1), var(--qs-metal-2)); }
+@media (forced-colors: active) { .solid, .paper, .glass, .metal, .inkmat { border: 1px solid CanvasText; } }
+
+/* ---------- resting controls ---------- */
+.btn { min-height: var(--qs-target); padding: 0 1rem; border-radius: var(--qs-radius-control); font-weight: 600; font-size: 0.9375rem;
+  display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--qs-edge); background: var(--qs-card); color: var(--qs-ink);
+  transition: background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease, border-color var(--qs-dur-fade) ease; }
+.btn:hover { border-color: var(--qs-ink); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--qs-ink); color: var(--qs-card); border-color: var(--qs-ink); }
+.btn.danger { color: var(--qs-pen-b); border-color: var(--qs-pen-b); }
+.btn[aria-pressed="true"] { background: var(--qs-card); color: var(--qs-ink); border-color: var(--qs-edge); }
+.field { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; }
+.field label, .lab { font-size: 0.875rem; font-weight: 600; }
+.field input[type="text"], .field input[type="email"], select {
+  min-height: var(--qs-target); padding: 0 0.75rem; border-radius: var(--qs-radius-control);
+  border: 1px solid var(--qs-edge); background: var(--qs-card); color: var(--qs-ink); max-width: 100%; }
+.field .hint { font-size: 0.875rem; color: var(--qs-muted); }
+.field .err { font-size: 0.875rem; color: var(--qs-pen-b); font-weight: 600; }
+input[type="range"] { accent-color: var(--qs-pen-a); min-height: 28px; width: 100%; }
+.switch { display: inline-flex; align-items: center; gap: 0.5rem; min-height: var(--qs-target); font-size: 0.9375rem; font-weight: 600; }
+.switch input { width: 1.25rem; height: 1.25rem; accent-color: var(--qs-pen-a); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
+th, td { text-align: left; padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--qs-outline); vertical-align: top; }
+th { font-weight: 700; font-size: 0.875rem; color: var(--qs-muted); }
+td.num { font-family: var(--qs-voice-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.card { border-radius: var(--qs-radius-card); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ---------- header ---------- */
+header.top { display: flex; flex-direction: column; gap: 1.25rem; }
+.wordmark { font-family: var(--qs-voice-fancy); font-weight: 600; font-size: clamp(3rem, 2rem + 6vw, 5.5rem); line-height: 0.95; letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 1; }
+.top .lede { max-width: 62ch; font-size: 1.1875rem; }
+.settings { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; padding: 0.5rem 1rem; border-radius: var(--qs-radius-card); }
+.settings select { min-height: 36px; }
+
+/* ---------- voices ---------- */
+.cast { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); padding: 1rem; border-radius: var(--qs-radius-card); }
+.sample { border-radius: var(--qs-radius-pool); padding: clamp(1.25rem, 3vw, 2.25rem); display: flex; flex-direction: column; gap: 1rem; }
+.sample .tag { font-size: 0.875rem; color: var(--qs-muted); }
+.sample h3.fancy { font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem); line-height: 1.05; font-weight: 600; letter-spacing: -0.02em; font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 1; }
+.sample .aside { font-size: 1.375rem; line-height: 1.2; font-weight: 600; color: var(--qs-pen-a); display: inline-block; transform: rotate(-2deg); font-variation-settings: "BNCE" 0, "INFM" 40, "SPAC" 0; }
+.spec { border-radius: var(--qs-radius-card); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.spec .who { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+.spec .status { font-size: 0.8125rem; color: var(--qs-muted); }
+.spec .status.bad { color: var(--qs-pen-b); font-weight: 600; }
+.spec .big { font-size: clamp(2rem, 1.4rem + 2.4vw, 3rem); line-height: 1.1; overflow-wrap: anywhere; min-height: 2.3em; }
+.spec .alpha { font-size: 1.125rem; overflow-wrap: anywhere; }
+.spec-fancy .big, .spec-fancy .alpha { font-family: var(--qs-voice-fancy); transition: font-variation-settings var(--qs-dur-ceremony) ease-out; }
+.spec-fun .big, .spec-fun .alpha { font-family: var(--qs-voice-fun); }
+.spec-pro .big { font-weight: 700; letter-spacing: -0.01em; }
+.sliders { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.75rem; align-items: center; font-size: 0.875rem; }
+.reading { font-family: var(--qs-voice-reading); max-width: 68ch; }
+@keyframes bounce-axis { 0% { font-variation-settings: "BNCE" 0, "INFM" 40, "SPAC" 0; } 30% { font-variation-settings: "BNCE" 100, "INFM" 100, "SPAC" 20; }
+  60% { font-variation-settings: "BNCE" -60, "INFM" 60, "SPAC" 0; } 100% { font-variation-settings: "BNCE" 0, "INFM" 40, "SPAC" 0; } }
+.bouncing { animation: bounce-axis var(--qs-dur-ceremony) ease-out 1; }
+
+/* ---------- colour ---------- */
+.swatches { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.sw { border-radius: var(--qs-radius-card); overflow: hidden; display: flex; flex-direction: column; }
+.sw .chip { height: 56px; border-bottom: 1px solid var(--qs-outline); }
+.sw .meta { padding: 0.5rem 0.625rem 0.625rem; display: flex; flex-direction: column; gap: 0.125rem; font-size: 0.875rem; }
+.sw .ratio { font-family: var(--qs-voice-mono); font-size: 0.8125rem; color: var(--qs-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- material stage ---------- */
+.stage { border-radius: var(--qs-radius-pool); padding: 1.25rem; border: 1px solid var(--qs-outline);
+  background:
+    radial-gradient(circle at 18% 30%, var(--qs-pen-a) 0 70px, transparent 71px),
+    radial-gradient(circle at 78% 70%, var(--qs-pen-b) 0 90px, transparent 91px),
+    repeating-linear-gradient(45deg, #000 0 14px, #fff 14px 28px); }
+.mats { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.mat { border-radius: var(--qs-radius-card); padding: 0.875rem; min-height: 112px; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9375rem; }
+.mat b { font-size: 1.0625rem; }
+.readout { font-family: var(--qs-voice-mono); font-variant-numeric: tabular-nums; }
+.pass { color: var(--qs-success); font-weight: 700; } .fail { color: var(--qs-pen-b); font-weight: 700; }
+
+/* ---------- the core (this page's navigation) ---------- */
+.core { position: fixed; z-index: 50;
+  right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: var(--qs-core-size); height: var(--qs-core-size); border-radius: var(--qs-radius-core);
+  background: var(--qs-ink); color: var(--qs-card); box-shadow: 0 6px 16px var(--qs-shadow); overflow: clip;
+  transition: width var(--qs-dur-spread) var(--qs-ease-spread), height var(--qs-dur-spread) var(--qs-ease-spread),
+    border-radius var(--qs-dur-spread) ease, background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease; }
+.core[data-open="true"] { width: 292px; height: 348px; max-width: calc(100vw - 32px); border-radius: var(--qs-radius-pool);
+  background: var(--qs-card); color: var(--qs-ink); box-shadow: 0 0 0 1px var(--qs-edge), 0 6px 16px var(--qs-shadow); }
+.core-toggle { position: absolute; right: 0; bottom: 0; width: 56px; height: 56px; border: 0; background: transparent; color: inherit; border-radius: 28px;
+  display: grid; place-items: center; }
+.core-toggle svg { width: 22px; height: 22px; }
+.core-toggle .bar { transition: transform var(--qs-dur-settle) var(--qs-ease-settle), opacity var(--qs-dur-fade) ease; transform-origin: 12px 12px; }
+.core[data-open="true"] .bar.b1 { transform: translateY(5px) rotate(45deg); }
+.core[data-open="true"] .bar.b2 { opacity: 0; }
+.core[data-open="true"] .bar.b3 { transform: translateY(-5px) rotate(-45deg); }
+.core-menu { position: absolute; left: 8px; top: 8px; width: 276px; max-width: calc(100vw - 48px); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; list-style: none; padding: 0; }
+.core-menu li { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.3);
+  transition: transform var(--qs-dur-gather) var(--qs-ease-gather) var(--dc), opacity var(--qs-dur-fade) ease var(--dc); }
+.core[data-open="true"] .core-menu li { opacity: 1; transform: none; transition-delay: var(--do); }
+.core-menu li.wide { grid-column: 1 / -1; }
+.core-menu a, .core-menu button { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0 0.75rem; border-radius: 8px; border: 0; background: transparent;
+  color: var(--qs-ink); text-decoration: none; font-size: 0.9375rem; font-weight: 500; text-align: left; }
+.core-menu a:hover, .core-menu button:hover { background: var(--qs-paper); }
+.core-menu a[aria-current="true"] { background: var(--qs-highlighter); color: var(--qs-on-hi); font-weight: 700; }
+.core-menu .tourlink { background: var(--qs-ink); color: var(--qs-card); font-weight: 700; }
+.core-menu .tourlink:hover { background: var(--qs-ink); }
+
+.bead { position: fixed; z-index: 49; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  max-width: min(300px, calc(100vw - 32px)); padding: 0.75rem 1rem; border-radius: 28px; font-size: 0.9375rem; font-weight: 600;
+  opacity: 0; transform: scale(0.3); transform-origin: calc(100% - 28px) calc(100% - 28px); pointer-events: none;
+  transition: transform var(--qs-dur-gather) var(--qs-ease-gather), opacity var(--qs-dur-fade) ease; }
+.bead.out { opacity: 1; transform: translateY(-68px) scale(1); transition-timing-function: var(--qs-ease-spread), ease; transition-duration: var(--qs-dur-spread), var(--qs-dur-fade); }
+.bead.fun { font-family: var(--qs-voice-fun); font-size: 1.0625rem; }
+
+/* ---------- rail demo ---------- */
+.frame { border-radius: var(--qs-radius-pool); border: 1px solid var(--qs-outline); background: var(--qs-paper); padding: 12px; display: flex; gap: 12px; min-height: 250px; overflow: hidden; }
+.rail { width: 56px; flex-shrink: 0; border-radius: var(--qs-radius-pool); padding: 6px; display: flex; flex-direction: column; gap: 4px; overflow: hidden;
+  box-shadow: var(--qs-lift); transition: width var(--qs-dur-spread) var(--qs-ease-spread); }
+.rail[data-open="true"] { width: 220px; }
+.rail button { height: 44px; width: 208px; border: 0; background: transparent; color: var(--qs-ink); border-radius: 8px; padding: 0; display: flex; align-items: center; font-size: 0.875rem; font-weight: 500; text-align: left; }
+.rail .ic { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 8px; }
+.rail .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.rail button[aria-current="true"] .ic { background: var(--qs-highlighter); color: var(--qs-on-hi); }
+.rail .lb { padding-left: 10px; white-space: nowrap; opacity: 0; transform: translateX(-12px); transition: opacity var(--qs-dur-fade) ease, transform var(--qs-dur-settle) ease; }
+.rail[data-open="true"] .lb { opacity: 1; transform: none; transition-delay: var(--d); }
+.frame .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; }
+
+/* ---------- liquid demo ---------- */
+.liquid { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.liquid-btn { border: 0; background: transparent; padding: 0; border-radius: var(--qs-radius-pool); line-height: 0; max-width: 100%; }
+.liquid svg { width: 340px; max-width: 100%; height: auto; }
+.liquid .drop { transition: transform var(--qs-dur-spread) var(--qs-ease-spread); }
+.liquid[data-spread="true"] .d1 { transform: translate(-96px, 0); }
+.liquid[data-spread="true"] .d2 { transform: translate(96px, -8px); }
+.liquid[data-spread="true"] .d3 { transform: translate(52px, 30px); }
+@keyframes scatter { 0% { transform: none; } 25% { transform: translate(var(--sx), var(--sy)); } 55% { transform: translate(calc(var(--sx) * -0.4), calc(var(--sy) * 0.5)); } 100% { transform: none; } }
+.liquid.poked .drop { animation: scatter 1.2s var(--qs-ease-gather) 1; }
+
+/* ---------- drops and pool ---------- */
+.drops { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.dropcard { text-align: left; border-radius: var(--qs-radius-card); padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.dropcard:hover { border-color: var(--qs-ink); }
+.pool { border-radius: var(--qs-radius-pool); padding: 1.5rem; width: min(520px, calc(100vw - 32px)); transform-origin: 0 0; box-shadow: var(--qs-lift); }
+.pool::backdrop { background: rgb(2 6 23 / 0.45); }
+.pool .inner { display: flex; flex-direction: column; gap: 0.75rem; }
+.pool dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.375rem 1rem; }
+.pool dt { font-weight: 700; } .pool dd { margin: 0; }
+
+/* ---------- marks ---------- */
+.ink-path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 0; transition: stroke-dashoffset 600ms ease-out var(--delay, 0ms); }
+.undrawn .ink-path { stroke-dashoffset: 1.02; transition: none; }
+.swipe { position: relative; display: inline-block; isolation: isolate; color: var(--qs-on-hi); padding-inline: 0.1em; }
+.swipe::before { content: ""; position: absolute; inset: 10% -3px; background: var(--hi, var(--qs-highlighter)); border-radius: 2px; z-index: -1; transform-origin: left center;
+  transition: transform 450ms ease-out var(--delay, 0ms); }
+.swipe.a { --hi: var(--qs-pen-a-wash); color: var(--qs-ink); } .swipe.b { --hi: var(--qs-pen-b-wash); color: var(--qs-ink); }
+.undrawn .swipe::before { transform: scaleX(0); transition: none; }
+.note { font-family: var(--qs-voice-fun); font-weight: 600; font-size: 1.25rem; line-height: 1; display: inline-block; transform: rotate(-3deg); white-space: nowrap; transition: opacity 300ms ease var(--delay, 0ms); }
+.undrawn .note { opacity: 0; transition: none; }
+.note.a { color: var(--qs-pen-a); } .note.b { color: var(--qs-pen-b); }
+.circled { position: relative; display: inline-block; }
+.circled svg { position: absolute; left: -10px; top: -7px; width: calc(100% + 20px); height: calc(100% + 14px); overflow: visible; }
+.markcard { min-height: 132px; }
+.markcard .demo { font-size: 1.0625rem; min-height: 2.5em; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.figure { font-family: var(--qs-voice-pro); font-weight: 800; font-size: 1.5rem; line-height: 1; }
+del { text-decoration-thickness: 0.1em; color: var(--qs-muted); } ins { text-decoration: none; }
+.tick { width: 22px; height: 16px; flex-shrink: 0; }
+
+/* ---------- ceremony ---------- */
+.ceremony { border-radius: var(--qs-radius-pool); padding: clamp(1.25rem, 3vw, 2.25rem); display: flex; flex-direction: column; gap: 1rem; overflow: hidden; }
+.verdict { font-family: var(--qs-voice-fancy); font-weight: 700; font-size: clamp(2.75rem, 1.5rem + 7vw, 5.5rem); line-height: 1; letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 1; display: flex; flex-wrap: wrap; }
+.verdict span { display: inline-block; transition: transform var(--qs-dur-ceremony) var(--qs-ease-ceremony) var(--d), opacity 500ms ease var(--d); }
+.loose .verdict span { transform: translate(var(--lx), var(--ly)) rotate(var(--lr)); opacity: 0.3; transition: none; }
+.ceremony .line { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; font-size: 1.1875rem; }
+
+/* ---------- motion ---------- */
+.curves { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.curve { border-radius: var(--qs-radius-card); padding: 0.875rem; display: grid; grid-template-columns: 84px 1fr; gap: 0.75rem; align-items: center; }
+.curve svg { width: 84px; height: 60px; overflow: visible; }
+.curve .plot { fill: none; stroke: var(--qs-pen-a); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.curve .axis { stroke: var(--qs-outline); stroke-width: 1; }
+.curve .track { height: 20px; border-radius: 10px; background: var(--qs-paper); border: 1px solid var(--qs-outline); position: relative; margin-top: 0.375rem; }
+.curve .dot { position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--qs-ink); }
+.curve .info { min-width: 0; }
+
+/* ---------- empty state ---------- */
+.empty { border-radius: var(--qs-radius-pool); border: 1px dashed var(--qs-edge); padding: 2rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+
+/* ---------- tour ---------- */
+.tour-step { position: fixed; inset: auto; top: 0; left: 0; margin: 0; width: min(320px, calc(100vw - 32px)); padding: 1rem; border-radius: var(--qs-radius-pool);
+  border: 1px solid var(--qs-edge); color: var(--qs-ink); box-shadow: 0 6px 16px var(--qs-shadow); overflow: visible;
+  transform-origin: 0 0; transition: transform var(--qs-dur-spread) var(--qs-ease-spread), opacity var(--qs-dur-fade) ease; }
+.tour-step h3 { margin-bottom: 0.25rem; }
+.tour-step .foot { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.875rem; flex-wrap: wrap; }
+.tour-step .count { font-size: 0.875rem; color: var(--qs-ink); margin-right: auto; font-variant-numeric: tabular-nums; }
+.tour-step .btn { min-height: 44px; padding: 0 0.75rem; }
+.tour-target { outline: 3px solid var(--qs-pen-a) !important; outline-offset: 4px !important; border-radius: 10px; }
+
+pre.egg { margin: 0; padding: 1rem; border-radius: var(--qs-radius-card); font-family: var(--qs-voice-mono); font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap; }
+details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+</style>
+
+<header class="top">
+  <h1 class="wordmark">Quicksilver</h1>
+  <p class="lede">The kit: every voice, material, mark and moving part of the design language, built from the real tokens. The puck in the corner is this page's core. Open it.</p>
+  <div class="settings solid resting" aria-label="Preferences">
+    <label class="switch"><input type="checkbox" id="set-play" checked> Playfulness</label>
+    <label class="switch"><input type="checkbox" id="set-motion"> Preview reduced motion</label>
+    <label class="switch" for="set-reading">Reading font
+      <select id="set-reading">
+        <option value="app">App default</option>
+        <option value="system">System</option>
+        <option value="atkinson">Atkinson</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<main>
+
+<section id="voices">
+  <h2>Three voices</h2>
+  <p class="lede">Professional carries every word the app needs. Fancy marks ceremony. Fun is the app talking out of turn. Recast any of them from the bench and the whole page follows.</p>
+
+  <div class="cast solid resting" data-tour="cast">
+    <div class="field"><label for="cast-pro">Professional</label>
+      <select id="cast-pro">
+        <option value="Atkinson Hyperlegible Next">Atkinson Hyperlegible Next (default)</option>
+        <option value="Instrument Sans">Instrument Sans</option>
+        <option value="Figtree">Figtree</option>
+        <option value="Hanken Grotesk">Hanken Grotesk</option>
+        <option value="Bricolage Grotesque">Bricolage Grotesque</option>
+      </select></div>
+    <div class="field"><label for="cast-fancy">Fancy</label>
+      <select id="cast-fancy">
+        <option value="Fraunces">Fraunces (default)</option>
+        <option value="Playfair">Playfair</option>
+        <option value="Bodoni Moda">Bodoni Moda</option>
+        <option value="Newsreader">Newsreader</option>
+      </select></div>
+    <div class="field"><label for="cast-fun">Fun</label>
+      <select id="cast-fun">
+        <option value="Shantell Sans">Shantell Sans (default)</option>
+        <option value="Caveat">Caveat</option>
+        <option value="Gluten">Gluten</option>
+        <option value="Playpen Sans">Playpen Sans</option>
+      </select></div>
+  </div>
+
+  <div class="sample solid resting" id="together">
+    <p class="tag">All three on one screen. Example content, not real data.</p>
+    <h3 class="fancy"><span class="swipe">Lisbon,</span> under budget.</h3>
+    <p style="max-width: 60ch">Four nights, two people. You planned <strong>€1,400</strong> and spent <strong>€1,262</strong>. Flights were the biggest line; food came in under for the first time this year. <a href="#colour">See every line</a>.</p>
+    <div class="row">
+      <button class="btn primary" type="button" id="sample-save">Save trip</button>
+      <button class="btn" type="button">Split with Maya</button>
+      <span class="fun aside" id="sample-aside">that's pastel de nata money</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="spec spec-pro solid resting">
+      <div class="who"><h3>Professional</h3><span class="status" data-font-status="pro"></span></div>
+      <p class="big" id="big-pro">Here is the thing.</p>
+      <p class="alpha">Aa Bb Cc Il1 O0 rn m &amp; 0123456789</p>
+      <p class="small"><strong>Bold</strong>, <em>italic</em>, and regular. Every label, control, paragraph, table and error. Delete the other two voices and the app still works.</p>
+      <div class="sliders"><label for="ax-pro-w">Weight</label><input type="range" id="ax-pro-w" min="200" max="800" value="700"></div>
+    </div>
+    <div class="spec spec-fancy solid resting">
+      <div class="who"><h3>Fancy</h3><span class="status" data-font-status="fancy"></span></div>
+      <p class="big" id="big-fancy">This matters.</p>
+      <p class="alpha">Aa Bb Cc Qq Rr <em>fine print</em> &amp; 0123456789</p>
+      <p class="small">One ceremony per screen: a title, a verdict, a total. Its axes animate, so a heading can sharpen as it lands.</p>
+      <div class="sliders">
+        <label for="ax-f-opsz">Optical size</label><input type="range" id="ax-f-opsz" min="9" max="144" value="144">
+        <label for="ax-f-soft">Soft</label><input type="range" id="ax-f-soft" min="0" max="100" value="0">
+        <label for="ax-f-wonk">Wonk</label><input type="range" id="ax-f-wonk" min="0" max="1" step="1" value="1">
+        <label for="ax-f-w">Weight</label><input type="range" id="ax-f-w" min="100" max="900" value="600">
+      </div>
+      <div class="row"><button class="btn" type="button" id="arrive-fancy">Play arrival</button></div>
+    </div>
+    <div class="spec spec-fun solid resting">
+      <div class="who"><h3>Fun</h3><span class="status" data-font-status="fun"></span></div>
+      <p class="big" id="big-fun">Between us…</p>
+      <p class="alpha">Aa Bb Cc Gg Yy nice one! 0123456789</p>
+      <p class="small">Margin notes, empty states, tour copy, celebration. Never an instruction the user has to follow.</p>
+      <div class="sliders">
+        <label for="ax-u-bnce">Bounce</label><input type="range" id="ax-u-bnce" min="-100" max="100" value="0">
+        <label for="ax-u-infm">Informal</label><input type="range" id="ax-u-infm" min="0" max="100" value="40">
+        <label for="ax-u-w">Weight</label><input type="range" id="ax-u-w" min="300" max="800" value="600">
+      </div>
+      <div class="row"><button class="btn" type="button" id="arrive-fun">Play bounce</button></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card solid resting">
+      <h3>Reading sample</h3>
+      <p class="reading">Body text sits at seventeen pixels with a line height of one and a half, on a measure of about sixty-eight characters. Readers in one large study were 35% faster in their best font than their worst, and the best font was different for each person, which is why the reading font is a setting. Try it at the top of the page.</p>
+    </div>
+    <div class="card solid resting">
+      <h3>Utility: mono</h3>
+      <p class="mono">--qs-dur-spread: 460ms;<br>H.R. 4127 · 231–198 · 0O 1lI<br>€1,262.00 &nbsp; €1,400.00</p>
+      <p class="small muted">Code, identifiers and figures that line up. Not a style for tiny labels.</p>
+    </div>
+  </div>
+</section>
+
+<section id="emphasis">
+  <h2>Emphasis grammar</h2>
+  <p class="lede">Six devices, one meaning each. One per span, two at most.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Device</th><th>Looks like</th><th>Means</th><th>Markup</th></tr></thead>
+    <tbody>
+      <tr><td>Bold</td><td><strong>Payment is due Friday</strong></td><td>Importance. Read this even if you skim.</td><td class="mono">&lt;strong&gt;</td></tr>
+      <tr><td>Italic</td><td>I said <em>before</em> lunch</td><td>Stress, a title, a term. Short phrases only.</td><td class="mono">&lt;em&gt; &lt;cite&gt;</td></tr>
+      <tr><td>Solid underline</td><td><a href="#voices">Back to the voices</a></td><td>A link. Nothing else gets one.</td><td class="mono">&lt;a&gt;</td></tr>
+      <tr><td>Wavy underline</td><td>the <dfn title="The one element everything else on a screen belongs to">core</dfn> and <abbr title="Web Content Accessibility Guidelines">WCAG</abbr></td><td>There is more here: a term, an abbreviation.</td><td class="mono">&lt;dfn&gt; &lt;abbr&gt;</td></tr>
+      <tr><td>Highlighter</td><td>grants to <mark>rural counties</mark></td><td>The phrase this screen is about.</td><td class="mono">&lt;mark&gt;</td></tr>
+      <tr><td>Voice switch</td><td><span class="fancy" style="font-size:1.375rem;font-weight:600">Passed.</span> <span class="fun" style="font-weight:600">finally!</span></td><td>Fancy for ceremony, fun for an aside.</td><td class="mono">class on a real element</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="colour">
+  <h2>Colour: ink, paper, two pens, one highlighter</h2>
+  <p class="lede">The default cast comes from the VoteHound Working Copy kit. The figures are contrast ratios, measured live against paper and card in the theme you are viewing.</p>
+  <div class="swatches" id="swatches"></div>
+</section>
+
+<section id="materials">
+  <h2>Materials</h2>
+  <p class="lede">Five, with solid as the baseline. They sit here on the worst backdrop on purpose. Slide from clear to solid and watch the worst-case contrast for text on glass.</p>
+  <div class="card solid resting" data-tour="material">
+    <div class="field"><label for="dial">Material dial: clear to solid</label>
+      <input type="range" id="dial" min="50" max="100" value="78"></div>
+    <p class="small">Glass opacity <span class="readout" id="dial-val">78%</span>. Ink text on glass, worst backdrop: <span class="readout" id="dial-ink"></span>. Muted text: <span class="readout" id="dial-muted"></span>.</p>
+    <label class="switch" id="gold-wrap" hidden><input type="checkbox" id="gold"> Gold leaf</label>
+  </div>
+  <div class="stage">
+    <div class="mats">
+      <div class="mat solid"><b>Solid</b><span>Opaque card. Always the fallback.</span></div>
+      <div class="mat paper"><b>Paper</b><span>Solid plus ruling or grain.</span></div>
+      <div class="mat glass"><b>Glass</b><span>Floating layer only. Never content.</span></div>
+      <div class="mat metal" id="metal-tile"><b>Metal</b><span>Mercury. The highlight follows your pointer.</span></div>
+      <div class="mat inkmat"><b>Ink</b><span>The closed core, primary buttons.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="core">
+  <h2>Core and spread</h2>
+  <p class="lede">One element per screen that everything else comes out of and goes back into. Nothing teleports. On this page it is the puck in the bottom corner.</p>
+  <div class="row">
+    <button class="btn primary" type="button" id="open-core">Open the core</button>
+    <button class="btn" type="button" id="send-bead">Send a bead</button>
+  </div>
+
+  <h3>Rail: the desktop form of the same core</h3>
+  <div class="frame">
+    <nav class="rail solid" id="rail" data-open="false" aria-label="Example rail">
+      <button type="button" id="rail-toggle" aria-expanded="false" aria-label="Expand rail"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7H19M5 12H19M5 17H19"></path></svg></span><span class="lb" style="--d:80ms"><strong>Example app</strong></span></button>
+      <button type="button" aria-current="true"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11L12 4L20 11V20H4Z"></path></svg></span><span class="lb" style="--d:105ms">Home</span></button>
+      <button type="button"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3H17V21L12 17L7 21Z"></path></svg></span><span class="lb" style="--d:130ms">Tracking</span></button>
+      <button type="button"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3H15L19 7V21H6ZM9 11H16M9 15H16"></path></svg></span><span class="lb" style="--d:155ms">Documents</span></button>
+      <button type="button"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18L9 12L13 15L20 6M15 6H20V11"></path></svg></span><span class="lb" style="--d:180ms">Trends</span></button>
+    </nav>
+    <div class="content">
+      <p><strong>Press the menu icon in the rail.</strong></p>
+      <p class="small muted">56px closed, wider open, on the spread curve. Labels arrive a beat after the width settles, nearest first. The current section sits on highlighter.</p>
+    </div>
+  </div>
+
+  <h3>The liquid layer</h3>
+  <div class="liquid" id="liquid" data-spread="false">
+    <button class="liquid-btn" type="button" id="liquid-poke" aria-label="A bead of mercury">
+      <svg viewBox="0 0 340 130" aria-hidden="true">
+        <defs>
+          <filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="9"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"></feColorMatrix></filter>
+          <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--qs-metal-1)"></stop><stop offset="1" stop-color="var(--qs-metal-2)"></stop></linearGradient>
+        </defs>
+        <g filter="url(#goo)" fill="url(#hg)">
+          <circle cx="170" cy="62" r="34"></circle>
+          <circle class="drop d1" cx="170" cy="62" r="19" style="--sx:-120px;--sy:30px"></circle>
+          <circle class="drop d2" cx="170" cy="62" r="17" style="--sx:130px;--sy:-34px"></circle>
+          <circle class="drop d3" cx="170" cy="62" r="14" style="--sx:60px;--sy:44px"></circle>
+        </g>
+      </svg>
+    </button>
+    <div style="display:flex;flex-direction:column;gap:0.5rem;min-width:0;flex:1 1 240px">
+      <p class="small">Drops leave the body and rejoin it with a visible neck between them. This layer is decoration only: it sits behind real controls and is hidden from assistive technology.</p>
+      <div class="row"><button class="btn" type="button" id="liquid-toggle" aria-pressed="false">Spread</button></div>
+    </div>
+  </div>
+
+  <h3>Drop to pool</h3>
+  <p class="small muted">Press a card. It is the same body growing into a dialog, and it goes back where it came from.</p>
+  <div class="drops" id="drops">
+    <button type="button" class="dropcard solid resting" data-k="bead"><strong>Bead</strong><span class="small muted">Toast, status, progress</span></button>
+    <button type="button" class="dropcard solid resting" data-k="step"><strong>Tour step</strong><span class="small muted">A drop that travels</span></button>
+    <button type="button" class="dropcard solid resting" data-k="ceremony"><strong>Ceremony</strong><span class="small muted">The one fancy moment</span></button>
+  </div>
+  <dialog class="pool solid" id="pool" aria-labelledby="pool-title">
+    <div class="inner">
+      <h3 id="pool-title" style="font-size:1.5rem"></h3>
+      <dl>
+        <dt>Comes from</dt><dd id="pool-from"></dd>
+        <dt>Made of</dt><dd id="pool-of"></dd>
+        <dt>Says</dt><dd id="pool-says"></dd>
+      </dl>
+      <div class="row"><button class="btn primary" type="button" id="pool-close">Close</button></div>
+    </div>
+  </dialog>
+</section>
+
+<section id="marks">
+  <h2>Marks</h2>
+  <p class="lede">Pen marks on top of content. Each draws once, in reading order, a beat apart. With reduced motion they are simply already drawn.</p>
+  <div class="row"><button class="btn" type="button" id="replay-marks">Draw them again</button></div>
+  <div class="grid" id="marks-grid">
+    <div class="card solid resting markcard"><div class="demo"><span>grants to <span class="swipe" style="--delay:0ms">rural counties</span></span></div><h3>Highlight</h3><p class="small muted">A phrase inside running text.</p></div>
+    <div class="card solid resting markcard"><div class="demo"><span>rated <del>structurally deficient</del> <ins class="note a" style="--delay:300ms">poor or worse</ins></span></div><h3>Strike and insert</h3><p class="small muted">A value that changed. The old one stays readable.</p></div>
+    <div class="card solid resting markcard"><div class="demo"><span class="circled figure">231–198<svg viewBox="0 0 120 56" preserveAspectRatio="none" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:2.5;vector-effect:non-scaling-stroke;--delay:600ms" d="M60 6C20 4 6 20 14 34C24 50 96 50 108 32C116 14 84 2 44 8"></path></svg></span></div><h3>Circle</h3><p class="small muted">Standalone figures only. Never inside prose.</p></div>
+    <div class="card solid resting markcard"><div class="demo"><span class="figure">91%</span><svg viewBox="0 0 44 18" style="width:40px;height:16px" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:2.5;--delay:900ms" d="M4 14C14 4 28 4 38 10M30 3L39 10L29 15"></path></svg><span class="note b" style="--delay:1200ms">up from 88%</span></div><h3>Margin note</h3><p class="small muted">Context beside a value. One per card.</p></div>
+    <div class="card solid resting markcard"><div class="demo"><svg class="tick" viewBox="0 0 60 44" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:7;--delay:1500ms" d="M8 22L22 36L52 6"></path></svg><span>Yes</span><svg class="tick" viewBox="0 0 60 44" aria-hidden="true" style="margin-left:1rem"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:7;--delay:1800ms" d="M14 8L46 36M46 8L14 36"></path></svg><span>No</span></div><h3>Tick and cross</h3><p class="small muted">Always with the word, never colour alone.</p></div>
+    <div class="card solid resting markcard"><div class="demo"><span class="fancy" style="font-size:1.75rem;font-weight:600"><span class="swipe" style="--delay:2100ms">Tracking</span></span></div><h3>Title swipe</h3><p class="small muted">One per screen, behind the title.</p></div>
+  </div>
+</section>
+
+<section id="ceremony">
+  <h2>Ceremony</h2>
+  <p class="lede">The screen's single fancy moment: the headline value in the fancy voice plus one mark. Once per screen, once per visit.</p>
+  <div class="ceremony solid resting" id="cer">
+    <p class="small muted">Release 2.4 · final check</p>
+    <p class="verdict" id="verdict" aria-hidden="true"></p>
+    <p class="vh">Shipped</p>
+    <div class="line">
+      <span><span class="swipe" style="--delay:900ms">All 14 checks passed</span></span>
+      <span class="circled figure">14 of 14<svg viewBox="0 0 120 56" preserveAspectRatio="none" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:2.5;vector-effect:non-scaling-stroke;--delay:1400ms" d="M60 6C20 4 6 20 14 34C24 50 96 50 108 32C116 14 84 2 44 8"></path></svg></span>
+      <span class="note a" style="--delay:1900ms">first try!</span>
+    </div>
+    <div class="row"><button class="btn" type="button" id="replay-cer" data-tour="replay">Replay</button></div>
+  </div>
+</section>
+
+<section id="motion">
+  <h2>Motion</h2>
+  <p class="lede">Two channels. Position, size and shape move on springs and may overshoot. Colour and opacity never bounce. The more often something happens, the less it moves.</p>
+  <div class="row"><button class="btn" type="button" id="play-curves">Play all</button></div>
+  <div class="curves" id="curves"></div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>How often it happens</th><th>Motion allowed</th></tr></thead>
+    <tbody>
+      <tr><td>Many times a minute: typing, shortcuts, moving through a list</td><td>None. The state changes instantly.</td></tr>
+      <tr><td>Many times a session: open the menu, toggle, select</td><td>Feedback and fade. A spread only for the core.</td></tr>
+      <tr><td>A few times a session: open a record, finish a task</td><td>Spread and gather, staged.</td></tr>
+      <tr><td>Once: first run, a result, a milestone</td><td>Ceremony.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="controls">
+  <h2>Resting controls</h2>
+  <p class="lede">Buttons, fields and tables rest on paper. They respond in 100ms but do not travel. If everything moves, the core stops meaning anything.</p>
+  <div class="row">
+    <button class="btn primary" type="button">Primary</button>
+    <button class="btn" type="button">Secondary</button>
+    <button class="btn danger" type="button">Delete trip</button>
+    <button class="btn primary" type="button" id="follow" aria-pressed="false"><svg class="tick" viewBox="0 0 60 44" aria-hidden="true" hidden><path class="ink-path" pathLength="1" style="stroke:var(--qs-success);stroke-width:7" d="M8 22L22 36L52 6"></path></svg><span>Follow</span></button>
+  </div>
+  <div class="grid">
+    <div class="field"><label for="f-name">Trip name</label><input type="text" id="f-name" value="Lisbon, March"><span class="hint">Shown on the shared page.</span></div>
+    <div class="field"><label for="f-mail">Share with</label><input type="email" id="f-mail" value="maya@" aria-invalid="true" aria-describedby="f-mail-err"><span class="err" id="f-mail-err">That address is missing a domain. Add the part after the @.</span></div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Component</th><th>Comes from</th><th>Made of</th><th>Limit</th></tr></thead>
+    <tbody>
+      <tr><td>Core</td><td>Itself</td><td>Ink closed, solid or glass open</td><td class="num">1 per screen</td></tr>
+      <tr><td>Core menu, rail</td><td>Core</td><td>Solid</td><td class="num">1</td></tr>
+      <tr><td>Drop</td><td>Core or another drop</td><td>Solid; glass if floating</td><td class="num">—</td></tr>
+      <tr><td>Pool</td><td>The drop that opened it</td><td>Solid</td><td class="num">1 open</td></tr>
+      <tr><td>Bead</td><td>Core</td><td>Ink or metal</td><td class="num">1 at a time</td></tr>
+      <tr><td>Ceremony</td><td>The headline value</td><td>Fancy voice + 1 mark</td><td class="num">1 per screen</td></tr>
+      <tr><td>Tour step</td><td>Core</td><td>Glass or solid</td><td class="num">3–5 steps</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>Empty state</h3>
+  <div class="empty">
+    <p><strong>No trips yet.</strong> A trip holds a budget and everything you spend against it.</p>
+    <button class="btn primary" type="button">Plan your first trip</button>
+    <span class="fun" style="font-weight:600;color:var(--qs-pen-a);transform:rotate(-2deg);display:inline-block">somewhere warm?</span>
+  </div>
+</section>
+
+<section id="tour">
+  <h2>Guided tour</h2>
+  <p class="lede">Available, never imposed. It starts from the core, runs four steps, never covers what it points at, and goes back into the core so you know where to find it again. Escape ends it.</p>
+  <div class="row">
+    <button class="btn primary" type="button" id="start-tour">Take the tour</button>
+    <span class="small muted" id="tour-note"></span>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Finding</th><th>Figure</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Tours the user starts, median completion</td><td class="num">69%</td><td>Produktly 2026, vendor data</td></tr>
+      <tr><td>Tours that start themselves</td><td class="num">23%</td><td>Produktly 2026, vendor data</td></tr>
+      <tr><td>Completion at 3–5 steps</td><td class="num">38%</td><td>Produktly 2026, vendor data</td></tr>
+      <tr><td>Completion at 9 or more steps</td><td class="num">8%</td><td>Produktly 2026, vendor data</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="eggs">
+  <h2>Easter eggs</h2>
+  <p class="lede">Every app hides at least one thing. There is one on this page. The clue: mercury does not like being poked.</p>
+  <div class="grid">
+    <div class="card solid resting"><h3>The contract</h3>
+      <ul class="small" style="padding-left:1.1rem;display:flex;flex-direction:column;gap:0.25rem">
+        <li>Off the critical path. Nothing is reachable only through an egg.</li>
+        <li>Earned or opt-in, and free to ignore.</li>
+        <li>Rare and varied.</li>
+        <li>Never in an error, payment, security or data-loss moment.</li>
+        <li>Keyboard reachable, still under reduced motion, silent.</li>
+        <li>Off with the Playfulness switch.</li>
+        <li>Logged in the project's <span class="mono">EGGS.md</span>.</li>
+      </ul>
+    </div>
+    <div class="card solid resting"><h3>This page's entry</h3>
+      <details><summary>Spoil it</summary>
+        <pre class="egg solid resting">## Gold leaf
+- Trigger: poke the bead of mercury five times
+  (keyboard: focus it, press Enter five times)
+- What happens: the beads scatter and regather,
+  and a Gold leaf option appears under Materials
+- Kind: material
+- Reduced motion: no scatter; the option still unlocks
+- Off switch: Playfulness
+- Never fires during: forms, dialogs, the tour
+- Clue: the line above this card; the console</pre>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="core" id="core-nav" data-open="false" aria-label="Kit sections">
+  <ul class="core-menu" id="core-menu">
+    <li class="wide"><button type="button" class="tourlink" id="core-tour">Take the tour</button></li>
+    <li><a href="#voices">Voices</a></li><li><a href="#emphasis">Emphasis</a></li>
+    <li><a href="#colour">Colour</a></li><li><a href="#materials">Materials</a></li>
+    <li><a href="#core">Core</a></li><li><a href="#marks">Marks</a></li>
+    <li><a href="#ceremony">Ceremony</a></li><li><a href="#motion">Motion</a></li>
+    <li><a href="#controls">Controls</a></li><li><a href="#tour">Tour</a></li>
+    <li><a href="#eggs">Eggs</a></li>
+  </ul>
+  <button type="button" class="core-toggle" id="core-toggle" aria-expanded="false" aria-controls="core-menu" aria-label="Open menu">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+      <path class="bar b1" d="M5 7H19"></path><path class="bar b2" d="M5 12H19"></path><path class="bar b3" d="M5 17H19"></path>
+    </svg>
+  </button>
+</nav>
+<div class="bead inkmat" id="bead" role="status"></div>
+
+<div class="tour-step glass" id="tour-step" popover="manual" role="dialog" aria-labelledby="ts-title" aria-describedby="ts-body" tabindex="-1">
+  <h3 id="ts-title"></h3>
+  <p class="small" id="ts-body"></p>
+  <div class="foot">
+    <span class="count" id="ts-count"></span>
+    <button class="btn" type="button" id="ts-back">Back</button>
+    <button class="btn primary" type="button" id="ts-next">Next</button>
+    <button class="btn" type="button" id="ts-close" aria-label="Close tour">Close</button>
+  </div>
+</div>
+<div class="vh" aria-live="polite" id="live"></div>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  function reduced() { return mq.matches || root.dataset.motion === 'reduce'; }
+  function playful() { return root.dataset.play !== 'off'; }
+  function tok(name) { return getComputedStyle(root).getPropertyValue(name).trim(); }
+  function ms(name) { return parseFloat(tok(name)) || 0; }
+  function animate(el, frames, opts) {
+    try { return el.animate(frames, opts); }
+    catch (e) { opts.easing = 'ease-out'; return el.animate(frames, opts); }
+  }
+  function redraw(el, extra) {
+    if (reduced()) return;
+    el.classList.add('undrawn'); if (extra) el.classList.add(extra);
+    void el.offsetWidth;
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      el.classList.remove('undrawn'); if (extra) el.classList.remove(extra);
+    }); });
+  }
+
+  /* ---------- preferences ---------- */
+  var setPlay = $('#set-play'), setMotion = $('#set-motion'), setReading = $('#set-reading');
+  setPlay.addEventListener('change', function () { if (setPlay.checked) delete root.dataset.play; else root.dataset.play = 'off'; });
+  setMotion.addEventListener('change', function () { if (setMotion.checked) root.dataset.motion = 'reduce'; else delete root.dataset.motion; drawCurves(); });
+  setReading.addEventListener('change', function () {
+    var v = setReading.value;
+    root.style.setProperty('--qs-voice-reading', v === 'system' ? 'system-ui, sans-serif' : v === 'atkinson' ? '"Atkinson Hyperlegible Next", system-ui, sans-serif' : 'var(--qs-voice-pro)');
+  });
+
+  /* ---------- voices: recasting and font status ---------- */
+  var BENCH = {
+    'Instrument Sans': 'Instrument+Sans:ital,wght@0,400..700;1,400..700',
+    'Figtree': 'Figtree:ital,wght@0,300..900;1,300..900',
+    'Hanken Grotesk': 'Hanken+Grotesk:ital,wght@0,100..900;1,100..900',
+    'Bricolage Grotesque': 'Bricolage+Grotesque:opsz,wght@12..96,200..800',
+    'Playfair': 'Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900',
+    'Bodoni Moda': 'Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900',
+    'Newsreader': 'Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800',
+    'Caveat': 'Caveat:wght@400..700',
+    'Gluten': 'Gluten:wght@100..900',
+    'Playpen Sans': 'Playpen+Sans:wght@100..800'
+  };
+  var FALLBACK = { pro: 'system-ui, sans-serif', fancy: '"Iowan Old Style", Georgia, serif', fun: '"Comic Neue", "Segoe Print", cursive' };
+  var loadedLinks = {};
+  var cast = { pro: 'Atkinson Hyperlegible Next', fancy: 'Fraunces', fun: 'Shantell Sans' };
+  function fontStatus() {
+    ['pro', 'fancy', 'fun'].forEach(function (voice) {
+      var el = $('[data-font-status="' + voice + '"]'), name = cast[voice];
+      if (!document.fonts || !document.fonts.load) { el.textContent = name; return; }
+      document.fonts.load('600 24px "' + name + '"').then(function (faces) {
+        var ok = faces && faces.length > 0;
+        el.textContent = ok ? name : name + ' did not load; showing a fallback';
+        el.classList.toggle('bad', !ok);
+      }, function () { el.textContent = name + ' did not load; showing a fallback'; el.classList.add('bad'); });
+    });
+  }
+  function recast(voice, name) {
+    cast[voice] = name;
+    if (BENCH[name] && !loadedLinks[name]) {
+      var l = document.createElement('link'); l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=' + BENCH[name] + '&display=swap';
+      l.onload = fontStatus; document.head.appendChild(l); loadedLinks[name] = true;
+    }
+    root.style.setProperty('--qs-voice-' + voice, '"' + name + '", ' + FALLBACK[voice]);
+    fontStatus();
+  }
+  ['pro', 'fancy', 'fun'].forEach(function (voice) {
+    var sel = $('#cast-' + voice);
+    sel.addEventListener('change', function () { recast(voice, sel.value); });
+    if (sel.value !== cast[voice]) recast(voice, sel.value);
+  });
+  fontStatus();
+
+  /* axis sliders */
+  var bigPro = $('#big-pro'), bigFancy = $('#big-fancy'), bigFun = $('#big-fun');
+  function fancyAxes(soft, wonk) {
+    return '"opsz" ' + $('#ax-f-opsz').value + ', "SOFT" ' + (soft == null ? $('#ax-f-soft').value : soft) + ', "WONK" ' + (wonk == null ? $('#ax-f-wonk').value : wonk);
+  }
+  function applyAxes() {
+    bigPro.style.fontWeight = $('#ax-pro-w').value;
+    bigFancy.style.fontWeight = $('#ax-f-w').value;
+    bigFancy.style.fontVariationSettings = fancyAxes();
+    bigFun.style.fontWeight = $('#ax-u-w').value;
+    bigFun.style.fontVariationSettings = '"BNCE" ' + $('#ax-u-bnce').value + ', "INFM" ' + $('#ax-u-infm').value + ', "SPAC" 0';
+  }
+  $$('.sliders input').forEach(function (i) { i.addEventListener('input', function () { bigFancy.style.transition = 'none'; applyAxes(); }); });
+  applyAxes();
+  $('#arrive-fancy').addEventListener('click', function () {
+    if (reduced()) { applyAxes(); return; }
+    bigFancy.style.transition = 'none';
+    bigFancy.style.fontVariationSettings = fancyAxes(100, 0);
+    void bigFancy.offsetWidth;
+    bigFancy.style.transition = '';
+    bigFancy.style.fontVariationSettings = fancyAxes(0, 1);
+    $('#ax-f-soft').value = 0; $('#ax-f-wonk').value = 1;
+  });
+  function bounce(el) {
+    if (reduced() || !playful()) return;
+    var keep = el.style.fontVariationSettings; el.style.fontVariationSettings = '';
+    el.classList.remove('bouncing'); void el.offsetWidth; el.classList.add('bouncing');
+    el.addEventListener('animationend', function done() { el.classList.remove('bouncing'); el.style.fontVariationSettings = keep; el.removeEventListener('animationend', done); });
+  }
+  $('#arrive-fun').addEventListener('click', function () { bounce(bigFun); });
+  $('#sample-save').addEventListener('click', function () { bead('Trip saved'); bounce($('#sample-aside')); });
+
+  /* ---------- colour: live contrast ---------- */
+  function rgbOf(value) {
+    var p = document.createElement('span'); p.style.color = value; p.hidden = true; document.body.appendChild(p);
+    var m = getComputedStyle(p).color.match(/[\d.]+/g); p.remove();
+    return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+  }
+  function lum(c) {
+    var f = function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  }
+  function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  var ROLES = [
+    ['Ink', '--qs-ink', 'Text'], ['Paper', '--qs-paper', 'The page'], ['Card', '--qs-card', 'Sits on paper'],
+    ['Muted', '--qs-muted', 'Secondary text'], ['Pen A', '--qs-pen-a', 'Links, primary, for'], ['Pen B', '--qs-pen-b', 'Against, destructive'],
+    ['Highlighter', '--qs-highlighter', 'Fill behind ink only'], ['Edge', '--qs-edge', 'Control boundary, 3:1'], ['Outline', '--qs-outline', 'Decorative hairline'],
+    ['Pen A wash', '--qs-pen-a-wash', 'Highlight, side A'], ['Pen B wash', '--qs-pen-b-wash', 'Highlight, side B'],
+    ['Success', '--qs-success', 'It worked'], ['Warning', '--qs-warning', 'Check this']
+  ];
+  function drawSwatches() {
+    var host = $('#swatches'); host.textContent = '';
+    var paper = rgbOf(tok('--qs-paper')), card = rgbOf(tok('--qs-card'));
+    ROLES.forEach(function (r) {
+      var c = rgbOf(tok(r[1]));
+      var d = document.createElement('div'); d.className = 'sw solid resting';
+      var chip = document.createElement('div'); chip.className = 'chip'; chip.style.background = 'var(' + r[1] + ')';
+      var meta = document.createElement('div'); meta.className = 'meta';
+      var name = document.createElement('strong'); name.textContent = r[0];
+      var use = document.createElement('span'); use.className = 'muted'; use.textContent = r[2];
+      var ratio = document.createElement('span'); ratio.className = 'ratio';
+      ratio.textContent = r[1] === '--qs-highlighter'
+        ? 'ink on it ' + contrast(rgbOf(tok('--qs-on-hi')), c).toFixed(1)
+        : contrast(c, paper).toFixed(1) + ' paper · ' + contrast(c, card).toFixed(1) + ' card';
+      meta.appendChild(name); meta.appendChild(use); meta.appendChild(ratio);
+      d.appendChild(chip); d.appendChild(meta); host.appendChild(d);
+    });
+  }
+
+  /* ---------- materials ---------- */
+  var dial = $('#dial');
+  function worst(textTok, s) {
+    var card = rgbOf(tok('--qs-card')), text = rgbOf(tok(textTok));
+    var over = function (bg) { return card.map(function (v) { return v * s + bg * (1 - s); }); };
+    return Math.min(contrast(text, over(255)), contrast(text, over(0)));
+  }
+  function setReadout(el, v) {
+    el.textContent = v.toFixed(1) + ':1 ' + (v >= 4.5 ? 'passes' : 'fails');
+    el.className = 'readout ' + (v >= 4.5 ? 'pass' : 'fail');
+  }
+  function applyDial() {
+    var s = dial.value / 100;
+    root.style.setProperty('--qs-glass-scrim', s);
+    root.style.setProperty('--qs-glass-blur', s >= 1 ? '0px' : '18px');
+    $('#dial-val').textContent = dial.value + '%' + (s >= 1 ? ' (solid)' : '');
+    setReadout($('#dial-ink'), worst('--qs-ink', s));
+    setReadout($('#dial-muted'), worst('--qs-muted', s));
+  }
+  dial.addEventListener('input', applyDial);
+  var metalTile = $('#metal-tile');
+  metalTile.addEventListener('pointermove', function (e) {
+    if (reduced()) return;
+    var r = metalTile.getBoundingClientRect();
+    metalTile.style.setProperty('--spec-x', ((e.clientX - r.left) / r.width * 100).toFixed(0) + '%');
+    metalTile.style.setProperty('--spec-y', ((e.clientY - r.top) / r.height * 100).toFixed(0) + '%');
+  });
+  var gold = $('#gold'), goldWrap = $('#gold-wrap');
+  function unlockGold(on) { goldWrap.hidden = false; gold.checked = on; if (on) root.dataset.material = 'gold'; else delete root.dataset.material; }
+  gold.addEventListener('change', function () { unlockGold(gold.checked); store.set('qs-kit-gold', gold.checked ? 'on' : 'off'); });
+  var savedGold = store.get('qs-kit-gold');
+  if (savedGold) unlockGold(savedGold === 'on');
+
+  function themed() { drawSwatches(); applyDial(); drawCurves(); }
+  if (window.matchMedia) {
+    var dm = window.matchMedia('(prefers-color-scheme: dark)');
+    if (dm.addEventListener) dm.addEventListener('change', themed);
+  }
+  new MutationObserver(function (list) { list.forEach(function (m) { if (m.attributeName === 'data-theme') themed(); }); }).observe(root, { attributes: true });
+
+  /* ---------- the core ---------- */
+  var core = $('#core-nav'), toggle = $('#core-toggle'), menu = $('#core-menu');
+  $$('li', menu).forEach(function (li, i) {
+    var wide = li.classList.contains('wide');
+    var row = wide ? 0 : Math.floor((i - 1) / 2) + 1, col = wide ? 0 : (i - 1) % 2;
+    var fromEnd = 6 - row;
+    li.style.setProperty('--fx', (col === 0 ? 150 : 20) + 'px');
+    li.style.setProperty('--fy', (fromEnd * 48 + 50) + 'px');
+    li.style.setProperty('--do', (100 + fromEnd * 40) + 'ms');
+    li.style.setProperty('--dc', (row * 35) + 'ms');
+  });
+  function setCore(open, moveFocus) {
+    core.dataset.open = String(open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    menu.inert = !open;
+    if (moveFocus) (open ? $('a, button', menu) : toggle).focus();
+  }
+  function coreOpen() { return core.dataset.open === 'true'; }
+  setCore(false, false);
+  toggle.addEventListener('click', function () { setCore(!coreOpen(), true); });
+  menu.addEventListener('click', function (e) { if (e.target.closest('a')) setCore(false, false); });
+  document.addEventListener('click', function (e) { if (coreOpen() && !core.contains(e.target) && !e.target.closest('#open-core')) setCore(false, false); });
+  $('#open-core').addEventListener('click', function () { setCore(true, true); });
+  /* current section in the menu */
+  if ('IntersectionObserver' in window) {
+    var links = {};
+    $$('a', menu).forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { $$('a', menu).forEach(function (a) { a.removeAttribute('aria-current'); }); if (links[en.target.id]) links[en.target.id].setAttribute('aria-current', 'true'); }
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    $$('main section').forEach(function (s) { io.observe(s); });
+  }
+
+  /* bead: leaves the core, rests, rejoins it */
+  var beadEl = $('#bead'), beadTimer;
+  function bead(text, fun) {
+    clearTimeout(beadTimer);
+    beadEl.textContent = text;
+    beadEl.classList.toggle('fun', !!fun);
+    beadEl.classList.add('out');
+    beadTimer = setTimeout(function () { beadEl.classList.remove('out'); }, 5000);
+  }
+  var beadLines = ['Saved', 'Copied to clipboard', '3 items archived', 'Back online'], beadI = 0;
+  $('#send-bead').addEventListener('click', function () { bead(beadLines[beadI++ % beadLines.length]); });
+
+  /* rail */
+  var rail = $('#rail'), railToggle = $('#rail-toggle');
+  railToggle.addEventListener('click', function () {
+    var open = rail.dataset.open !== 'true';
+    rail.dataset.open = String(open);
+    railToggle.setAttribute('aria-expanded', String(open));
+    railToggle.setAttribute('aria-label', open ? 'Collapse rail' : 'Expand rail');
+  });
+
+  /* liquid layer and the egg */
+  var liquid = $('#liquid'), liquidToggle = $('#liquid-toggle'), pokes = [], poke = $('#liquid-poke');
+  liquidToggle.addEventListener('click', function () {
+    var on = liquid.dataset.spread !== 'true';
+    liquid.dataset.spread = String(on);
+    liquidToggle.setAttribute('aria-pressed', String(on));
+    liquidToggle.textContent = on ? 'Gather' : 'Spread';
+  });
+  poke.addEventListener('click', function () {
+    if (!playful()) return;
+    var now = Date.now();
+    pokes = pokes.filter(function (t) { return now - t < 4000; }); pokes.push(now);
+    if (pokes.length < 5) return;
+    pokes = [];
+    if (!reduced()) { liquid.classList.remove('poked'); void liquid.offsetWidth; liquid.classList.add('poked'); setTimeout(function () { liquid.classList.remove('poked'); }, 1300); }
+    if (goldWrap.hidden) { unlockGold(true); store.set('qs-kit-gold', 'on'); bead('You found the gold leaf. It lives under Materials now.', true); }
+    else { bead(['ow.', 'still mercury.', 'that tickles'][Math.floor(Math.random() * 3)], true); }
+  });
+
+  /* drop to pool */
+  var POOL = {
+    bead: ['Bead', 'The core. It leaves, rests nearby, and rejoins it.', 'Ink or metal.', 'One short line in the professional voice. Never the only record of an outcome.'],
+    step: ['Tour step', 'The core. It travels to its target and gathers back when the tour ends.', 'Glass or solid, with an edge border.', 'A bold title, one sentence, and where you are: step 2 of 4.'],
+    ceremony: ['Ceremony', 'The headline value of the screen.', 'The fancy voice plus one mark.', 'One word or one number. Once per screen, once per visit.']
+  };
+  var pool = $('#pool'), poolOrigin = null;
+  function poolFrames(card) {
+    var a = card.getBoundingClientRect(), b = pool.getBoundingClientRect();
+    return [{ transform: 'translate(' + (a.left - b.left) + 'px,' + (a.top - b.top) + 'px) scale(' + (a.width / b.width) + ',' + (a.height / b.height) + ')', opacity: 0.6 },
+            { transform: 'none', opacity: 1 }];
+  }
+  $$('.dropcard').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var d = POOL[card.dataset.k]; poolOrigin = card;
+      $('#pool-title').textContent = d[0]; $('#pool-from').textContent = d[1]; $('#pool-of').textContent = d[2]; $('#pool-says').textContent = d[3];
+      pool.showModal();
+      if (reduced()) { animate(pool, [{ opacity: 0 }, { opacity: 1 }], { duration: 150 }); return; }
+      animate(pool, poolFrames(card), { duration: ms('--qs-dur-spread'), easing: tok('--qs-ease-spread') });
+      animate($('.inner', pool), [{ opacity: 0 }, { opacity: 1 }], { duration: 180, delay: 200, fill: 'backwards' });
+    });
+  });
+  function closePool() {
+    if (!pool.open) return;
+    if (reduced() || !poolOrigin) { pool.close(); return; }
+    var frames = poolFrames(poolOrigin).reverse();
+    var an = animate(pool, frames, { duration: ms('--qs-dur-gather'), easing: tok('--qs-ease-gather') });
+    an.onfinish = function () { pool.close(); };
+  }
+  $('#pool-close').addEventListener('click', closePool);
+  pool.addEventListener('cancel', function (e) { e.preventDefault(); closePool(); });
+  pool.addEventListener('click', function (e) { if (e.target === pool) closePool(); });
+
+  /* ---------- marks and ceremony ---------- */
+  $('#replay-marks').addEventListener('click', function () { redraw($('#marks-grid')); });
+  var verdict = $('#verdict'), LOOSE = [[150, -14, 40], [20, 14, -60], [196, 8, 95], [90, -8, -25], [40, -6, 150], [168, 16, -110], [60, 12, 70]];
+  'Shipped'.split('').forEach(function (ch, i) {
+    var s = document.createElement('span'); s.textContent = ch;
+    s.style.setProperty('--lx', (LOOSE[i][0] - i * 40) + 'px'); s.style.setProperty('--ly', LOOSE[i][1] + 'px');
+    s.style.setProperty('--lr', LOOSE[i][2] + 'deg'); s.style.setProperty('--d', (i * 50) + 'ms');
+    verdict.appendChild(s);
+  });
+  $('#replay-cer').addEventListener('click', function () { redraw($('#cer'), 'loose'); });
+  /* follow toggle: label changes and a tick draws */
+  var follow = $('#follow');
+  follow.addEventListener('click', function () {
+    var on = follow.getAttribute('aria-pressed') !== 'true';
+    follow.setAttribute('aria-pressed', String(on));
+    $('span', follow).textContent = on ? 'Following' : 'Follow';
+    var t = $('svg', follow); t.hidden = !on;
+    if (on) redraw(follow);
+  });
+
+  /* ---------- motion: plots drawn from the live tokens ---------- */
+  var CURVES = [
+    ['Feedback', '--qs-dur-feedback', 'ease-out', 'effects'], ['Fade', '--qs-dur-fade', 'ease', 'effects'],
+    ['Settle', '--qs-dur-settle', '--qs-ease-settle', 'spatial'], ['Gather', '--qs-dur-gather', '--qs-ease-gather', 'spatial'],
+    ['Spread', '--qs-dur-spread', '--qs-ease-spread', 'spatial'], ['Ceremony', '--qs-dur-ceremony', '--qs-ease-ceremony', 'spatial']
+  ];
+  var NAMED = { 'ease': [0.25, 0.1, 0.25, 1], 'ease-out': [0, 0, 0.58, 1], 'ease-in-out': [0.42, 0, 0.58, 1], 'linear': [0, 0, 1, 1] };
+  function samples(easing) {
+    var pts = [], i, t;
+    if (easing.indexOf('linear(') === 0) {
+      var ys = easing.slice(7, -1).split(',').map(function (s) { return parseFloat(s); });
+      for (i = 0; i < ys.length; i++) pts.push([i / (ys.length - 1), ys[i]]);
+      return pts;
+    }
+    var b = NAMED[easing] || (easing.match(/-?[\d.]+/g) || [0, 0, 1, 1]).map(Number);
+    for (i = 0; i <= 40; i++) {
+      t = i / 40; var u = 1 - t;
+      pts.push([3 * u * u * t * b[0] + 3 * u * t * t * b[2] + t * t * t, 3 * u * u * t * b[1] + 3 * u * t * t * b[3] + t * t * t]);
+    }
+    return pts;
+  }
+  function drawCurves() {
+    var host = $('#curves'); if (!host) return; host.textContent = '';
+    CURVES.forEach(function (c) {
+      var easing = c[2].indexOf('--') === 0 ? tok(c[2]) : c[2], dur = tok(c[1]);
+      var W = 84, H = 60, y0 = 48, yr = 36;
+      var d = samples(easing).map(function (p, i) { return (i ? 'L' : 'M') + (p[0] * W).toFixed(1) + ' ' + (y0 - p[1] * yr).toFixed(1); }).join('');
+      var el = document.createElement('div'); el.className = 'curve solid resting';
+      el.innerHTML = '<svg viewBox="0 0 84 60" role="img"><line class="axis" x1="0" y1="48" x2="84" y2="48"></line><line class="axis" x1="0" y1="12" x2="84" y2="12" stroke-dasharray="2 3"></line><path class="plot"></path></svg>' +
+        '<div class="info"><strong></strong> <span class="mono muted"></span><div class="small muted"></div><div class="track"><div class="dot"></div></div></div>';
+      $('svg', el).setAttribute('aria-label', c[0] + ' easing curve');
+      $('.plot', el).setAttribute('d', d);
+      $('strong', el).textContent = c[0];
+      $('.mono', el).textContent = dur;
+      $('.small', el).textContent = c[3] === 'spatial' ? 'Spatial: moves, may overshoot' : 'Effects: fades, never bounces';
+      el.dataset.easing = easing; el.dataset.dur = parseFloat(dur); el.dataset.kind = c[3];
+      host.appendChild(el);
+    });
+  }
+  $('#play-curves').addEventListener('click', function () {
+    $$('.curve').forEach(function (el) {
+      var dot = $('.dot', el), track = $('.track', el), travel = track.clientWidth - 20;
+      var frames = el.dataset.kind === 'spatial'
+        ? [{ transform: 'translateX(0)' }, { transform: 'translateX(' + travel + 'px)' }]
+        : [{ opacity: 0.15, transform: 'translateX(' + travel + 'px)' }, { opacity: 1, transform: 'translateX(' + travel + 'px)' }];
+      animate(dot, frames, { duration: Number(el.dataset.dur), easing: el.dataset.easing, fill: 'forwards' });
+    });
+  });
+
+  /* ---------- tour ---------- */
+  var STEPS = [
+    { target: '#core-toggle', title: 'Everything starts here', body: 'This puck is the core. The menu, messages and this tour all come out of it.' },
+    { target: '[data-tour="cast"]', title: 'Recast the voices', body: 'Swap any of the three fonts and the whole page changes with you.' },
+    { target: '[data-tour="material"]', title: 'Turn the dial', body: 'Slide from clear to solid and watch the contrast figure change.' },
+    { target: '[data-tour="replay"]', title: 'One ceremony per screen', body: 'Press Replay to watch it land. Then this step goes back where it came from.' }
+  ];
+  var step = $('#tour-step'), tourI = -1, tourLauncher = null, live = $('#live'), tourNote = $('#tour-note');
+  function corePos() { var r = toggle.getBoundingClientRect(); return { x: r.left, y: r.top }; }
+  function place(travel) {
+    if (tourI < 0) return;
+    step.style.transition = travel === true ? '' : 'none';
+    var t = $(STEPS[tourI].target).getBoundingClientRect(), w = step.offsetWidth, h = step.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+    var x = Math.max(16, Math.min(t.left, vw - w - 16));
+    var below = t.bottom + 14, above = t.top - h - 14;
+    var y = (below + h <= vh - 16) ? below : (above >= 16 ? above : Math.max(16, vh - h - 16));
+    step.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+  }
+  function showStep(i) {
+    $$('.tour-target').forEach(function (el) { el.classList.remove('tour-target'); });
+    tourI = i; store.set('qs-kit-tour', String(i));
+    var s = STEPS[i], target = $(s.target);
+    $('#ts-title').textContent = s.title; $('#ts-body').textContent = s.body;
+    $('#ts-count').textContent = 'Step ' + (i + 1) + ' of ' + STEPS.length;
+    $('#ts-back').hidden = i === 0;
+    $('#ts-next').textContent = i === STEPS.length - 1 ? 'Done' : 'Next';
+    live.textContent = 'Step ' + (i + 1) + ' of ' + STEPS.length + ': ' + s.title;
+    target.classList.add('tour-target');
+    if (!target.closest('.core')) target.scrollIntoView({ block: 'center', behavior: 'auto' });
+    place(true);
+    step.focus({ preventScroll: true });
+  }
+  function startTour(launcher) {
+    tourLauncher = launcher || toggle;
+    setCore(false, false);
+    var saved = parseInt(store.get('qs-kit-tour'), 10);
+    var from = (saved > 0 && saved < STEPS.length - 1) ? saved : 0;
+    if (step.showPopover) { try { step.showPopover(); } catch (e) {} } else { step.setAttribute('open', ''); }
+    var c = corePos();
+    step.style.transition = 'none'; step.style.opacity = '0';
+    step.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) scale(0.3)';
+    void step.offsetWidth;
+    step.style.transition = ''; step.style.opacity = '1';
+    showStep(from);
+  }
+  function endTour(finished) {
+    if (tourI < 0) return;
+    $$('.tour-target').forEach(function (el) { el.classList.remove('tour-target'); });
+    if (finished) store.set('qs-kit-tour', '0');
+    tourI = -1; live.textContent = 'Tour closed';
+    var c = corePos();
+    step.style.transition = '';
+    step.style.opacity = '0';
+    step.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) scale(0.3)';
+    setTimeout(function () { if (step.hidePopover) { try { step.hidePopover(); } catch (e) {} } }, ms('--qs-dur-spread') + 40);
+    if (tourLauncher) tourLauncher.focus({ preventScroll: true });
+    updateTourNote();
+  }
+  function updateTourNote() {
+    var saved = parseInt(store.get('qs-kit-tour'), 10);
+    var resume = saved > 0 && saved < STEPS.length - 1;
+    $('#start-tour').textContent = resume ? 'Resume the tour' : 'Take the tour';
+    tourNote.textContent = resume ? 'You stopped at step ' + (saved + 1) + ' of ' + STEPS.length + '.' : '';
+  }
+  $('#start-tour').addEventListener('click', function () { startTour($('#start-tour')); });
+  $('#core-tour').addEventListener('click', function () { startTour(toggle); });
+  $('#ts-next').addEventListener('click', function () { if (tourI === STEPS.length - 1) endTour(true); else showStep(tourI + 1); });
+  $('#ts-back').addEventListener('click', function () { if (tourI > 0) showStep(tourI - 1); });
+  $('#ts-close').addEventListener('click', function () { endTour(false); });
+  window.addEventListener('scroll', place, { passive: true });
+  window.addEventListener('resize', place);
+  updateTourNote();
+
+  /* Escape closes the topmost spread and returns focus to its origin */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (tourI >= 0) { endTour(false); return; }
+    if (coreOpen()) setCore(false, true);
+  });
+
+  /* ---------- first paint ---------- */
+  themed();
+  if (!reduced()) { redraw($('#marks-grid')); redraw($('#together')); }
+  try { console.log('%cQuicksilver kit', 'font: 600 16px Georgia, serif', '\nMercury does not like being poked.'); } catch (e) {}
+})();
+</script>

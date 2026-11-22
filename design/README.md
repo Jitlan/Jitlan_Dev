@@ -23,6 +23,13 @@ own repository; see `docs/plugin-plan.md`.
 | `docs/accessibility.md` | The definition of done, the preference matrix, the contrast script. |
 | `docs/plugin-plan.md` | How this becomes a Claude Code plugin that updates by commit. |
 
+## kit/ — see it
+
+`kit/kit.html` is the living kit page: every voice, material, mark and moving part,
+built from the tokens, with a font bench for recasting the three voices. It is a page
+fragment (no `<html>` wrapper) so it can be published as an artifact; browsers open it
+directly as well.
+
 ## references/ — what it rests on
 
 | File | What it is |
