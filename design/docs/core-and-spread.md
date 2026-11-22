@@ -58,7 +58,10 @@ If two elements both seem to be the core, the screen is two screens.
 
 ## The reference spread
 
-Measured from the VoteHound Working Copy menu, which is the pattern to copy:
+Measured from the VoteHound Working Copy menu, which is the starting pattern. The kit
+page (`../kit/kit.html`) refines it after review: the body grows as liquid, the items
+fade in quickly once it has nearly settled instead of flying out of the puck, and the
+puck stays an ink disc on top of the open menu, widening to a "Close" pill.
 
 ```
 closed:  56 × 56px, radius 28px, ink, shows a menu icon

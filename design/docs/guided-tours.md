@@ -56,8 +56,14 @@ teaching, behind a clear screen and good empty states.
 
 - Copy may be in the fun voice for the sentence, never for the title or the buttons.
 - Material: glass or solid, radius 20px, 320px wide, `--qs-edge` border.
-- The target gets a pen-A ring (a mark), not a dark full-screen overlay. If dimming is
-  used it is light, and the target and the step both stay reachable.
+- **Spotlight.** The step must make it obvious what it is talking about. Everything
+  except the target fades back under a wash of the paper colour at about 80%, and a
+  hand-drawn pen-A loop is drawn round the target once the spotlight arrives. The
+  spotlight travels from target to target with the step.
+- The wash is the page's own paper colour, not black, and it never takes pointer
+  events: the target, the step and the rest of the page all stay usable.
+- The loop is built in real pixels for the target's box, so its stroke weight and
+  draw-in are the same for a small button and a full-width panel.
 
 ## Accessibility contract
 

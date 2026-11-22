@@ -24,8 +24,15 @@ ships with a library's stock look.
 ## Core menu and rail
 
 - **Comes from:** the core. The core *is* the menu, grown.
-- **Phone:** 56px puck → 292×364px, two columns of 44px items. The current item sits on
-  highlighter.
+- **Phone:** 56px puck → a 292px-wide menu, two columns of 44px items. The current item
+  sits on highlighter.
+- **How it opens:** the body grows first, as liquid (a decorative layer behind the menu,
+  with a few beads running ahead of the edge and being absorbed). Once it has nearly
+  settled, the items fade in quickly, in reading order, 14ms apart. Items do not fly.
+- **The puck stays the puck.** Open or closed it is the same ink disc, drawn on top of
+  everything in the menu and separated from the items by a hairline. Open, it widens to
+  a pill that says "Close" beside a cross, so closing reads as a different kind of
+  action from the navigation items above it.
 - **Desktop:** a rail, 56px ↔ 248px, icons always visible, labels arriving after the
   width settles.
 - **Closes on:** the toggle, Escape, outside press, scroll past 48px, choosing an item.
@@ -83,7 +90,8 @@ text as well.
 ## Tour step
 
 See `guided-tours.md`. In short: a drop from the core, `role="dialog"`, title, one
-sentence, "Step n of m", Back, Next, Close; never covers its target.
+sentence, "Step n of m", Back, Next, Close; never covers its target. A spotlight fades
+the rest of the page back and a pen loop is drawn round the target.
 
 ## Resting controls
 
@@ -94,8 +102,16 @@ borders, 44px targets, a 3px focus ring offset 2px.
 - **Secondary button:** card fill, edge border.
 - **Destructive:** pen B text or fill, and a confirmation that states what will be
   lost. No fun voice.
-- **Toggle with a result** (Follow → Following): the label changes, and a tick draws
-  in 450ms. `aria-pressed` carries the state.
+- **Follow-up** (optional, any button): after the press the button pulls in to a 44px
+  disc showing an icon for what it just did, the icon makes one small movement (a tick
+  draws, an arrow lifts, a lid tips, a paw takes two steps), and the button comes back.
+  Declared with `data-after="check|share|trash|paw"`. Icons that bud out of a body (the
+  paw's toes) use the small goo filter. Under reduced motion the label simply changes.
+- **Toggle with a follow-up** (Follow → Unfollow): the button comes back carrying the
+  opposite action as its label, and a polite live region says what happened. The label
+  carries the state, so there is no `aria-pressed`.
+- **Destructive follow-up:** plays only after the deletion has really happened, never in
+  place of the confirmation, and with no bounce.
 - **Field:** a visible `<label>`; hint text below in muted; errors in the professional
   voice below the field, linked with `aria-describedby`.
 - **Table:** scrolls inside its own box at narrow widths; numbers in mono with

@@ -135,6 +135,27 @@ button { cursor: pointer; }
 .btn.primary { background: var(--qs-ink); color: var(--qs-card); border-color: var(--qs-ink); }
 .btn.danger { color: var(--qs-pen-b); border-color: var(--qs-pen-b); }
 .btn[aria-pressed="true"] { background: var(--qs-card); color: var(--qs-ink); border-color: var(--qs-edge); }
+.btn { position: relative; }
+.btn .lbl { transition: opacity 100ms ease; }
+.btn.morph { padding: 0; justify-content: center; overflow: hidden; white-space: nowrap; flex-shrink: 0;
+  transition: width var(--qs-dur-settle) var(--qs-ease-spread), border-radius var(--qs-dur-settle) ease, background var(--qs-dur-fade) ease; }
+.btn.is-icon { border-radius: 22px; }
+.btn.is-icon .lbl { opacity: 0; }
+.btn .after { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transform: scale(0.3); pointer-events: none;
+  transition: transform var(--qs-dur-settle) var(--qs-ease-spread), opacity 100ms ease; }
+.btn.is-icon .after { opacity: 1; transform: none; }
+.after svg { width: 26px; height: 26px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.after .fillc { fill: currentColor; stroke: none; }
+@keyframes ic-draw { from { stroke-dashoffset: 1.02; } to { stroke-dashoffset: 0; } }
+@keyframes ic-lid { 0%, 100% { transform: none; } 35%, 60% { transform: rotate(-24deg) translateY(-1px); } }
+@keyframes ic-fly { 0%, 100% { transform: none; } 45% { transform: translateY(-4px); } }
+@keyframes ic-toe { from { transform: translate(var(--tx), var(--ty)) scale(0.4); } to { transform: none; } }
+@keyframes ic-track { 0%, 100% { transform: none; } 20% { transform: translate(-3px, -3px) rotate(-14deg); } 45% { transform: translate(0, 0) rotate(0); } 65% { transform: translate(3px, -3px) rotate(14deg); } 85% { transform: translate(0, 0); } }
+.is-icon .ic-check { stroke-dasharray: 1 2; animation: ic-draw 380ms ease-out 180ms backwards; }
+.is-icon .ic-lid { transform-origin: 5px 7px; animation: ic-lid 620ms ease-in-out 220ms; }
+.is-icon .ic-arrow { animation: ic-fly 520ms ease-in-out 220ms 1; }
+.is-icon .ic-toe { animation: ic-toe 320ms var(--qs-ease-spread) 160ms backwards; }
+.is-icon .ic-paw { transform-origin: 12px 14px; animation: ic-track 640ms ease-in-out 480ms; }
 .field { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; }
 .field label, .lab { font-size: 0.875rem; font-weight: 600; }
 .field input[type="text"], .field input[type="email"], select {
@@ -200,32 +221,58 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .pass { color: var(--qs-success); font-weight: 700; } .fail { color: var(--qs-pen-b); font-weight: 700; }
 
 /* ---------- the core (this page's navigation) ---------- */
+/* The liquid layer is decoration: it sits behind the real nav, is hidden from assistive
+   technology, and is the only thing the goo filter touches. */
+.core-liquid { position: fixed; z-index: 48; pointer-events: none;
+  right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: 292px; height: 416px; max-width: calc(100vw - 32px);
+  filter: url(#goo-ui) drop-shadow(0 6px 10px var(--qs-shadow)); }
+.lq-body, .lq-blob { position: absolute; background: var(--qs-card); }
+.lq-body { right: 4px; bottom: 4px; width: 48px; height: 48px; border-radius: 24px;
+  transition: width var(--qs-dur-spread) var(--qs-ease-spread), height var(--qs-dur-spread) var(--qs-ease-spread),
+    right var(--qs-dur-spread) var(--qs-ease-spread), bottom var(--qs-dur-spread) var(--qs-ease-spread), border-radius var(--qs-dur-spread) ease; }
+.core-liquid[data-open="true"] .lq-body { right: 0; bottom: 0; width: 100%; height: 100%; border-radius: var(--qs-radius-pool); }
+.lq-blob { right: 10px; bottom: 10px; border-radius: 50%; transition: transform var(--qs-dur-gather) cubic-bezier(.4, 0, .6, 1); }
+.lq-blob.b1 { width: 54px; height: 54px; } .lq-blob.b2 { width: 40px; height: 40px; } .lq-blob.b3 { width: 46px; height: 46px; }
+.core-liquid[data-open="true"] .lq-blob { transition: transform 300ms cubic-bezier(.15, .75, .25, 1); }
+.core-liquid[data-open="true"] .b1 { transform: translate(-180px, -300px); }
+.core-liquid[data-open="true"] .b2 { transform: translate(-40px, -330px); }
+.core-liquid[data-open="true"] .b3 { transform: translate(-215px, -110px); }
+@media (prefers-reduced-motion: reduce) { .lq-blob { display: none; } }
+:root[data-motion="reduce"] .lq-blob { display: none; }
+
 .core { position: fixed; z-index: 50;
   right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  width: var(--qs-core-size); height: var(--qs-core-size); border-radius: var(--qs-radius-core);
-  background: var(--qs-ink); color: var(--qs-card); box-shadow: 0 6px 16px var(--qs-shadow); overflow: clip;
-  transition: width var(--qs-dur-spread) var(--qs-ease-spread), height var(--qs-dur-spread) var(--qs-ease-spread),
-    border-radius var(--qs-dur-spread) ease, background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease; }
-.core[data-open="true"] { width: 292px; height: 348px; max-width: calc(100vw - 32px); border-radius: var(--qs-radius-pool);
-  background: var(--qs-card); color: var(--qs-ink); box-shadow: 0 0 0 1px var(--qs-edge), 0 6px 16px var(--qs-shadow); }
-.core-toggle { position: absolute; right: 0; bottom: 0; width: 56px; height: 56px; border: 0; background: transparent; color: inherit; border-radius: 28px;
-  display: grid; place-items: center; }
-.core-toggle svg { width: 22px; height: 22px; }
+  width: var(--qs-core-size); height: var(--qs-core-size); border-radius: var(--qs-radius-core); color: var(--qs-ink); overflow: clip;
+  transition: width var(--qs-dur-spread) var(--qs-ease-spread), height var(--qs-dur-spread) var(--qs-ease-spread), border-radius var(--qs-dur-spread) ease; }
+.core[data-open="true"] { width: 292px; height: 416px; max-width: calc(100vw - 32px); border-radius: var(--qs-radius-pool);
+  box-shadow: 0 0 0 1px var(--qs-edge);
+  transition: width var(--qs-dur-spread) var(--qs-ease-spread), height var(--qs-dur-spread) var(--qs-ease-spread), border-radius var(--qs-dur-spread) ease, box-shadow 160ms ease 380ms; }
+@media (forced-colors: active) { .core[data-open="true"] { background: Canvas; border: 1px solid CanvasText; } }
+/* The puck keeps its identity open or closed: an ink disc, on top of everything in the menu. */
+.core-toggle { position: absolute; z-index: 2; right: 0; bottom: 0; height: 56px; min-width: 56px; padding: 0 17px; border: 0; border-radius: 28px;
+  background: var(--qs-ink); color: var(--qs-card); box-shadow: 0 4px 12px var(--qs-shadow);
+  display: flex; align-items: center; justify-content: center; gap: 0; font-weight: 700; font-size: 0.9375rem;
+  transition: right var(--qs-dur-settle) var(--qs-ease-settle), bottom var(--qs-dur-settle) var(--qs-ease-settle), height var(--qs-dur-settle) var(--qs-ease-settle); }
+.core[data-open="true"] .core-toggle { right: 8px; bottom: 8px; height: 48px; box-shadow: none; gap: 8px; }
+.core-toggle .word { max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; transition: max-width var(--qs-dur-settle) var(--qs-ease-settle), opacity var(--qs-dur-fade) ease; }
+.core[data-open="true"] .core-toggle .word { max-width: 5em; opacity: 1; transition-delay: 240ms; }
+.core-toggle svg { width: 22px; height: 22px; flex-shrink: 0; }
 .core-toggle .bar { transition: transform var(--qs-dur-settle) var(--qs-ease-settle), opacity var(--qs-dur-fade) ease; transform-origin: 12px 12px; }
 .core[data-open="true"] .bar.b1 { transform: translateY(5px) rotate(45deg); }
 .core[data-open="true"] .bar.b2 { opacity: 0; }
 .core[data-open="true"] .bar.b3 { transform: translateY(-5px) rotate(-45deg); }
-.core-menu { position: absolute; left: 8px; top: 8px; width: 276px; max-width: calc(100vw - 48px); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; list-style: none; padding: 0; }
-.core-menu li { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.3);
-  transition: transform var(--qs-dur-gather) var(--qs-ease-gather) var(--dc), opacity var(--qs-dur-fade) ease var(--dc); }
-.core[data-open="true"] .core-menu li { opacity: 1; transform: none; transition-delay: var(--do); }
+.core-menu { position: absolute; left: 8px; top: 8px; width: 276px; max-width: calc(100vw - 48px); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; list-style: none;
+  padding: 0 0 8px; border-bottom: 1px solid var(--qs-outline); }
+/* The body grows as liquid first; the items then fade in quickly, in reading order. */
+.core-menu li { opacity: 0; transition: opacity 80ms ease; }
+.core[data-open="true"] .core-menu li { opacity: 1; transition: opacity 140ms ease calc(260ms + var(--i) * 14ms); }
 .core-menu li.wide { grid-column: 1 / -1; }
 .core-menu a, .core-menu button { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0 0.75rem; border-radius: 8px; border: 0; background: transparent;
   color: var(--qs-ink); text-decoration: none; font-size: 0.9375rem; font-weight: 500; text-align: left; }
 .core-menu a:hover, .core-menu button:hover { background: var(--qs-paper); }
 .core-menu a[aria-current="true"] { background: var(--qs-highlighter); color: var(--qs-on-hi); font-weight: 700; }
-.core-menu .tourlink { background: var(--qs-ink); color: var(--qs-card); font-weight: 700; }
-.core-menu .tourlink:hover { background: var(--qs-ink); }
+.core-menu .tourlink { border: 1px solid var(--qs-edge); font-weight: 700; }
 
 .bead { position: fixed; z-index: 49; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   max-width: min(300px, calc(100vw - 32px)); padding: 0.75rem 1rem; border-radius: 28px; font-size: 0.9375rem; font-weight: 600;
@@ -304,6 +351,11 @@ del { text-decoration-thickness: 0.1em; color: var(--qs-muted); } ins { text-dec
 .curve .track { height: 20px; border-radius: 10px; background: var(--qs-paper); border: 1px solid var(--qs-outline); position: relative; margin-top: 0.375rem; }
 .curve .dot { position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--qs-ink); }
 .curve .info { min-width: 0; }
+.curve .btn { min-height: 36px; padding: 0 0.75rem; margin-top: 0.5rem; }
+.speed { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; }
+.speed legend { float: left; margin-right: 1rem; padding: 0; line-height: 44px; }
+.speed label { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px; font-size: 0.9375rem; }
+.speed input { width: 1.125rem; height: 1.125rem; accent-color: var(--qs-pen-a); }
 
 /* ---------- empty state ---------- */
 .empty { border-radius: var(--qs-radius-pool); border: 1px dashed var(--qs-edge); padding: 2rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
@@ -316,7 +368,13 @@ del { text-decoration-thickness: 0.1em; color: var(--qs-muted); } ins { text-dec
 .tour-step .foot { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.875rem; flex-wrap: wrap; }
 .tour-step .count { font-size: 0.875rem; color: var(--qs-ink); margin-right: auto; font-variant-numeric: tabular-nums; }
 .tour-step .btn { min-height: 44px; padding: 0 0.75rem; }
-.tour-target { outline: 3px solid var(--qs-pen-a) !important; outline-offset: 4px !important; border-radius: 10px; }
+/* Spotlight: everything but the target fades back, and a pen loop is drawn round it.
+   It never takes pointer events, so the target and the page stay usable. */
+.spot { position: fixed; z-index: 60; left: 0; top: 0; pointer-events: none; border-radius: 14px;
+  box-shadow: 0 0 0 200vmax color-mix(in oklab, var(--qs-paper) 80%, transparent);
+  transition: left var(--qs-dur-spread) var(--qs-ease-settle), top var(--qs-dur-spread) var(--qs-ease-settle), width var(--qs-dur-spread) var(--qs-ease-settle), height var(--qs-dur-spread) var(--qs-ease-settle), opacity var(--qs-dur-fade) ease; }
+.spot svg { position: absolute; inset: -7px; width: calc(100% + 14px); height: calc(100% + 14px); overflow: visible; }
+@media (forced-colors: active) { .spot { outline: 3px solid Highlight; } }
 
 pre.egg { margin: 0; padding: 1rem; border-radius: var(--qs-radius-card); font-family: var(--qs-voice-mono); font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap; }
 details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
@@ -374,7 +432,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <h3 class="fancy"><span class="swipe">Lisbon,</span> under budget.</h3>
     <p style="max-width: 60ch">Four nights, two people. You planned <strong>€1,400</strong> and spent <strong>€1,262</strong>. Flights were the biggest line; food came in under for the first time this year. <a href="#colour">See every line</a>.</p>
     <div class="row">
-      <button class="btn primary" type="button" id="sample-save">Save trip</button>
+      <button class="btn primary" type="button" id="sample-save" data-after="check"><span class="lbl">Save trip</span></button>
       <button class="btn" type="button">Split with Maya</button>
       <span class="fun aside" id="sample-aside">that's pastel de nata money</span>
     </div>
@@ -544,7 +602,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   <div class="grid" id="marks-grid">
     <div class="card solid resting markcard"><div class="demo"><span>grants to <span class="swipe" style="--delay:0ms">rural counties</span></span></div><h3>Highlight</h3><p class="small muted">A phrase inside running text.</p></div>
     <div class="card solid resting markcard"><div class="demo"><span>rated <del>structurally deficient</del> <ins class="note a" style="--delay:300ms">poor or worse</ins></span></div><h3>Strike and insert</h3><p class="small muted">A value that changed. The old one stays readable.</p></div>
-    <div class="card solid resting markcard"><div class="demo"><span class="circled figure">231–198<svg viewBox="0 0 120 56" preserveAspectRatio="none" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:2.5;vector-effect:non-scaling-stroke;--delay:600ms" d="M60 6C20 4 6 20 14 34C24 50 96 50 108 32C116 14 84 2 44 8"></path></svg></span></div><h3>Circle</h3><p class="small muted">Standalone figures only. Never inside prose.</p></div>
+    <div class="card solid resting markcard"><div class="demo"><span class="circled figure">231–198<svg viewBox="0 0 120 56" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:2.5;--delay:600ms"></path></svg></span></div><h3>Circle</h3><p class="small muted">Standalone figures only. Never inside prose.</p></div>
     <div class="card solid resting markcard"><div class="demo"><span class="figure">91%</span><svg viewBox="0 0 44 18" style="width:40px;height:16px" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:2.5;--delay:900ms" d="M4 14C14 4 28 4 38 10M30 3L39 10L29 15"></path></svg><span class="note b" style="--delay:1200ms">up from 88%</span></div><h3>Margin note</h3><p class="small muted">Context beside a value. One per card.</p></div>
     <div class="card solid resting markcard"><div class="demo"><svg class="tick" viewBox="0 0 60 44" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:7;--delay:1500ms" d="M8 22L22 36L52 6"></path></svg><span>Yes</span><svg class="tick" viewBox="0 0 60 44" aria-hidden="true" style="margin-left:1rem"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-b);stroke-width:7;--delay:1800ms" d="M14 8L46 36M46 8L14 36"></path></svg><span>No</span></div><h3>Tick and cross</h3><p class="small muted">Always with the word, never colour alone.</p></div>
     <div class="card solid resting markcard"><div class="demo"><span class="fancy" style="font-size:1.75rem;font-weight:600"><span class="swipe" style="--delay:2100ms">Tracking</span></span></div><h3>Title swipe</h3><p class="small muted">One per screen, behind the title.</p></div>
@@ -560,7 +618,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <p class="vh">Shipped</p>
     <div class="line">
       <span><span class="swipe" style="--delay:900ms">All 14 checks passed</span></span>
-      <span class="circled figure">14 of 14<svg viewBox="0 0 120 56" preserveAspectRatio="none" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:2.5;vector-effect:non-scaling-stroke;--delay:1400ms" d="M60 6C20 4 6 20 14 34C24 50 96 50 108 32C116 14 84 2 44 8"></path></svg></span>
+      <span class="circled figure">14 of 14<svg viewBox="0 0 120 56" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:2.5;--delay:1400ms"></path></svg></span>
       <span class="note a" style="--delay:1900ms">first try!</span>
     </div>
     <div class="row"><button class="btn" type="button" id="replay-cer" data-tour="replay">Replay</button></div>
@@ -570,7 +628,14 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 <section id="motion">
   <h2>Motion</h2>
   <p class="lede">Two channels. Position, size and shape move on springs and may overshoot. Colour and opacity never bounce. The more often something happens, the less it moves.</p>
-  <div class="row"><button class="btn" type="button" id="play-curves">Play all</button></div>
+  <div class="row">
+    <button class="btn" type="button" id="play-curves">Play all</button>
+    <fieldset class="speed"><legend class="lab">Speed</legend>
+      <label><input type="radio" name="speed" value="0.25"> Slow</label>
+      <label><input type="radio" name="speed" value="0.5"> Half</label>
+      <label><input type="radio" name="speed" value="1" checked> Normal</label>
+    </fieldset>
+  </div>
   <div class="curves" id="curves"></div>
   <div class="scroll">
   <table>
@@ -588,12 +653,13 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 <section id="controls">
   <h2>Resting controls</h2>
   <p class="lede">Buttons, fields and tables rest on paper. They respond in 100ms but do not travel. If everything moves, the core stops meaning anything.</p>
-  <div class="row">
-    <button class="btn primary" type="button">Primary</button>
-    <button class="btn" type="button">Secondary</button>
-    <button class="btn danger" type="button">Delete trip</button>
-    <button class="btn primary" type="button" id="follow" aria-pressed="false"><svg class="tick" viewBox="0 0 60 44" aria-hidden="true" hidden><path class="ink-path" pathLength="1" style="stroke:var(--qs-success);stroke-width:7" d="M8 22L22 36L52 6"></path></svg><span>Follow</span></button>
+  <div class="row" id="after-row">
+    <button class="btn primary" type="button" data-after="check" data-done="Trip saved"><span class="lbl">Save trip</span></button>
+    <button class="btn" type="button" data-after="share" data-done="Link copied"><span class="lbl">Share</span></button>
+    <button class="btn danger" type="button" data-after="trash" data-done="Trip deleted (example)"><span class="lbl">Delete trip</span></button>
+    <button class="btn primary" type="button" id="follow" data-after="paw"><span class="lbl">Follow</span></button>
   </div>
+  <p class="small muted" style="max-width:68ch">Any button can take a follow-up: after the press it pulls in to an icon for what it just did, the icon makes one small movement, and the button comes back. Follow comes back as Unfollow. A destructive button plays its follow-up only once the deletion has really happened, never in place of a confirmation.</p>
   <div class="grid">
     <div class="field"><label for="f-name">Trip name</label><input type="text" id="f-name" value="Lisbon, March"><span class="hint">Shown on the shared page.</span></div>
     <div class="field"><label for="f-mail">Share with</label><input type="email" id="f-mail" value="maya@" aria-invalid="true" aria-describedby="f-mail-err"><span class="err" id="f-mail-err">That address is missing a domain. Add the part after the @.</span></div>
@@ -622,7 +688,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
 <section id="tour">
   <h2>Guided tour</h2>
-  <p class="lede">Available, never imposed. It starts from the core, runs four steps, never covers what it points at, and goes back into the core so you know where to find it again. Escape ends it.</p>
+  <p class="lede">Available, never imposed. It starts from the core and runs four steps. At each one the rest of the page fades back and a pen loop is drawn round the thing being described, which stays usable. The step goes back into the core when it ends, so you know where to find it again. Escape ends it.</p>
   <div class="row">
     <button class="btn primary" type="button" id="start-tour">Take the tour</button>
     <span class="small muted" id="tour-note"></span>
@@ -674,6 +740,13 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
 </main>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="goo-ui" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="9"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"></feColorMatrix></filter>
+    <filter id="goo-sm" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="0.5"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 12 -4.5"></feColorMatrix></filter>
+  </defs>
+</svg>
+<div class="core-liquid" id="core-liquid" data-open="false" aria-hidden="true"><div class="lq-body"></div><div class="lq-blob b1"></div><div class="lq-blob b2"></div><div class="lq-blob b3"></div></div>
 <nav class="core" id="core-nav" data-open="false" aria-label="Kit sections">
   <ul class="core-menu" id="core-menu">
     <li class="wide"><button type="button" class="tourlink" id="core-tour">Take the tour</button></li>
@@ -685,11 +758,13 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <li><a href="#eggs">Eggs</a></li>
   </ul>
   <button type="button" class="core-toggle" id="core-toggle" aria-expanded="false" aria-controls="core-menu" aria-label="Open menu">
+    <span class="word" aria-hidden="true">Close</span>
     <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
       <path class="bar b1" d="M5 7H19"></path><path class="bar b2" d="M5 12H19"></path><path class="bar b3" d="M5 17H19"></path>
     </svg>
   </button>
 </nav>
+<div class="spot" id="spot" aria-hidden="true" hidden><svg><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:3.5;--delay:260ms"></path></svg></div>
 <div class="bead inkmat" id="bead" role="status"></div>
 
 <div class="tour-step glass" id="tour-step" popover="manual" role="dialog" aria-labelledby="ts-title" aria-describedby="ts-body" tabindex="-1">
@@ -815,7 +890,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     el.addEventListener('animationend', function done() { el.classList.remove('bouncing'); el.style.fontVariationSettings = keep; el.removeEventListener('animationend', done); });
   }
   $('#arrive-fun').addEventListener('click', function () { bounce(bigFun); });
-  $('#sample-save').addEventListener('click', function () { bead('Trip saved'); bounce($('#sample-aside')); });
+
 
   /* ---------- colour: live contrast ---------- */
   function rgbOf(value) {
@@ -896,17 +971,11 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
   /* ---------- the core ---------- */
   var core = $('#core-nav'), toggle = $('#core-toggle'), menu = $('#core-menu');
-  $$('li', menu).forEach(function (li, i) {
-    var wide = li.classList.contains('wide');
-    var row = wide ? 0 : Math.floor((i - 1) / 2) + 1, col = wide ? 0 : (i - 1) % 2;
-    var fromEnd = 6 - row;
-    li.style.setProperty('--fx', (col === 0 ? 150 : 20) + 'px');
-    li.style.setProperty('--fy', (fromEnd * 48 + 50) + 'px');
-    li.style.setProperty('--do', (100 + fromEnd * 40) + 'ms');
-    li.style.setProperty('--dc', (row * 35) + 'ms');
-  });
+  var coreLiquid = $('#core-liquid');
+  $$('li', menu).forEach(function (li, i) { li.style.setProperty('--i', i); });
   function setCore(open, moveFocus) {
     core.dataset.open = String(open);
+    coreLiquid.dataset.open = String(open);
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     menu.inert = !open;
@@ -931,7 +1000,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   }
 
   /* bead: leaves the core, rests, rejoins it */
-  var beadEl = $('#bead'), beadTimer;
+  var beadEl = $('#bead'), beadTimer, live = $('#live');
   function bead(text, fun) {
     clearTimeout(beadTimer);
     beadEl.textContent = text;
@@ -1003,6 +1072,25 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   pool.addEventListener('cancel', function (e) { e.preventDefault(); closePool(); });
   pool.addEventListener('click', function (e) { if (e.target === pool) closePool(); });
 
+  /* Hand-drawn loops are built in real pixels for the box they surround, so the stroke
+     and the draw-in behave the same at any size. */
+  function loopPath(W, H, r) {
+    var n = function (v) { return v.toFixed(1); };
+    var P = function () { return Array.prototype.map.call(arguments, n).join(' '); };
+    return 'M' + P(r + 4, 2) + 'C' + P(W * 0.35, 0, W * 0.7, 4, W - r, 2) + 'C' + P(W - 3, 2, W - 1, 6, W - 2, r + 2) +
+      'C' + P(W, H * 0.4, W - 3, H * 0.7, W - 2, H - r) + 'C' + P(W - 2, H - 3, W - 6, H - 1, W - r - 2, H - 2) +
+      'C' + P(W * 0.65, H, W * 0.3, H - 4, r, H - 2) + 'C' + P(4, H - 2, 1, H - 6, 2, H - r - 2) +
+      'C' + P(0, H * 0.6, 3, H * 0.3, 2, r) + 'C' + P(2, 5, 6, 1, Math.min(W - r, r + 22), 5);
+  }
+  function fitLoop(svg, r) {
+    var b = svg.getBoundingClientRect(); if (!b.width) return;
+    svg.setAttribute('viewBox', '0 0 ' + b.width.toFixed(1) + ' ' + b.height.toFixed(1));
+    $('path', svg).setAttribute('d', loopPath(b.width, b.height, r == null ? Math.min(b.width, b.height) / 2.1 : r));
+  }
+  function fitCircles() { $$('.circled svg').forEach(function (svg) { fitLoop(svg); }); }
+  fitCircles(); window.addEventListener('resize', fitCircles);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCircles);
+
   /* ---------- marks and ceremony ---------- */
   $('#replay-marks').addEventListener('click', function () { redraw($('#marks-grid')); });
   var verdict = $('#verdict'), LOOSE = [[150, -14, 40], [20, 14, -60], [196, 8, 95], [90, -8, -25], [40, -6, 150], [168, 16, -110], [60, 12, 70]];
@@ -1013,14 +1101,48 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     verdict.appendChild(s);
   });
   $('#replay-cer').addEventListener('click', function () { redraw($('#cer'), 'loose'); });
-  /* follow toggle: label changes and a tick draws */
-  var follow = $('#follow');
-  follow.addEventListener('click', function () {
-    var on = follow.getAttribute('aria-pressed') !== 'true';
-    follow.setAttribute('aria-pressed', String(on));
-    $('span', follow).textContent = on ? 'Following' : 'Follow';
-    var t = $('svg', follow); t.hidden = !on;
-    if (on) redraw(follow);
+  /* follow-up: a button pulls in to an icon for what it just did, the icon moves once,
+     and the button comes back, with the opposite label where the action toggles */
+  var ICONS = {
+    check: '<svg viewBox="0 0 24 24"><path class="ic-check" pathLength="1" d="M5 12.5L10 17.5L19 7"></path></svg>',
+    share: '<svg viewBox="0 0 24 24"><path d="M6 13V19H18V13"></path><path class="ic-arrow" d="M12 15V4M8 8L12 4L16 8"></path></svg>',
+    trash: '<svg viewBox="0 0 24 24"><path d="M7 10V19H17V10M10.5 12.5V16M13.5 12.5V16"></path><path class="ic-lid" d="M5 7H19M10 7V5H14V7"></path></svg>',
+    paw: '<svg viewBox="0 0 24 24"><g class="ic-paw fillc" filter="url(#goo-sm)"><path d="M12 12.4C15 12.4 17.4 15.2 17.4 17.4C17.4 19.6 15.4 20 12 20C8.6 20 6.6 19.6 6.6 17.4C6.6 15.2 9 12.4 12 12.4Z"></path>' +
+      '<circle class="ic-toe" cx="5.2" cy="10.6" r="1.9" style="--tx:6px;--ty:5px"></circle><circle class="ic-toe" cx="9.4" cy="6.4" r="2.1" style="--tx:2px;--ty:8px"></circle>' +
+      '<circle class="ic-toe" cx="14.6" cy="6.4" r="2.1" style="--tx:-2px;--ty:8px"></circle><circle class="ic-toe" cx="18.8" cy="10.6" r="1.9" style="--tx:-6px;--ty:5px"></circle></g></svg>'
+  };
+  var HOLD = { check: 700, share: 800, trash: 900, paw: 1150 };
+  function followUp(btn, nextLabel, done) {
+    var lbl = $('.lbl', btn), kind = btn.dataset.after;
+    if (btn.dataset.busy) return;
+    if (reduced()) { if (nextLabel) lbl.textContent = nextLabel; if (done) done(); return; }
+    btn.dataset.busy = '1';
+    var after = $('.after', btn);
+    if (!after) { after = document.createElement('span'); after.className = 'after'; after.setAttribute('aria-hidden', 'true'); btn.appendChild(after); }
+    after.innerHTML = ICONS[kind];
+    btn.style.width = btn.getBoundingClientRect().width + 'px';
+    btn.classList.add('morph'); void btn.offsetWidth;
+    btn.style.width = '44px'; btn.classList.add('is-icon');
+    setTimeout(function () {
+      if (nextLabel) lbl.textContent = nextLabel;
+      var c = btn.cloneNode(true); c.removeAttribute('id'); c.classList.remove('morph', 'is-icon');
+      c.style.cssText = 'position:absolute;visibility:hidden;width:auto';
+      btn.parentNode.appendChild(c); var w = c.getBoundingClientRect().width; c.remove();
+      btn.classList.remove('is-icon'); btn.style.width = w + 'px';
+      setTimeout(function () { btn.classList.remove('morph'); btn.style.width = ''; after.textContent = ''; delete btn.dataset.busy; if (done) done(); }, ms('--qs-dur-settle') + 80);
+    }, ms('--qs-dur-settle') + HOLD[kind]);
+  }
+  $$('[data-after]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.id === 'follow') {
+        var on = $('.lbl', btn).textContent === 'Follow';
+        followUp(btn, on ? 'Unfollow' : 'Follow', function () { live.textContent = on ? 'Following. The button now says Unfollow.' : 'No longer following.'; });
+      } else if (btn.id === 'sample-save') {
+        followUp(btn, null, function () { bead('Trip saved'); bounce($('#sample-aside')); });
+      } else {
+        followUp(btn, null, function () { bead(btn.dataset.done); });
+      }
+    });
   });
 
   /* ---------- motion: plots drawn from the live tokens ---------- */
@@ -1052,25 +1174,27 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
       var d = samples(easing).map(function (p, i) { return (i ? 'L' : 'M') + (p[0] * W).toFixed(1) + ' ' + (y0 - p[1] * yr).toFixed(1); }).join('');
       var el = document.createElement('div'); el.className = 'curve solid resting';
       el.innerHTML = '<svg viewBox="0 0 84 60" role="img"><line class="axis" x1="0" y1="48" x2="84" y2="48"></line><line class="axis" x1="0" y1="12" x2="84" y2="12" stroke-dasharray="2 3"></line><path class="plot"></path></svg>' +
-        '<div class="info"><strong></strong> <span class="mono muted"></span><div class="small muted"></div><div class="track"><div class="dot"></div></div></div>';
+        '<div class="info"><strong></strong> <span class="mono muted"></span><div class="small muted"></div><div class="track"><div class="dot"></div></div><button class="btn" type="button">Play</button></div>';
       $('svg', el).setAttribute('aria-label', c[0] + ' easing curve');
       $('.plot', el).setAttribute('d', d);
       $('strong', el).textContent = c[0];
       $('.mono', el).textContent = dur;
       $('.small', el).textContent = c[3] === 'spatial' ? 'Spatial: moves, may overshoot' : 'Effects: fades, never bounces';
       el.dataset.easing = easing; el.dataset.dur = parseFloat(dur); el.dataset.kind = c[3];
+      $('button', el).setAttribute('aria-label', 'Play ' + c[0]);
+      $('button', el).addEventListener('click', function () { playCurve(el); });
       host.appendChild(el);
     });
   }
-  $('#play-curves').addEventListener('click', function () {
-    $$('.curve').forEach(function (el) {
-      var dot = $('.dot', el), track = $('.track', el), travel = track.clientWidth - 20;
-      var frames = el.dataset.kind === 'spatial'
-        ? [{ transform: 'translateX(0)' }, { transform: 'translateX(' + travel + 'px)' }]
-        : [{ opacity: 0.15, transform: 'translateX(' + travel + 'px)' }, { opacity: 1, transform: 'translateX(' + travel + 'px)' }];
-      animate(dot, frames, { duration: Number(el.dataset.dur), easing: el.dataset.easing, fill: 'forwards' });
-    });
-  });
+  function speed() { var r = $('input[name="speed"]:checked'); return r ? Number(r.value) : 1; }
+  function playCurve(el) {
+    var dot = $('.dot', el), track = $('.track', el), travel = track.clientWidth - 20;
+    var frames = el.dataset.kind === 'spatial'
+      ? [{ transform: 'translateX(0)' }, { transform: 'translateX(' + travel + 'px)' }]
+      : [{ opacity: 0.15, transform: 'translateX(' + travel + 'px)' }, { opacity: 1, transform: 'translateX(' + travel + 'px)' }];
+    animate(dot, frames, { duration: Number(el.dataset.dur) / speed(), easing: el.dataset.easing, fill: 'forwards' });
+  }
+  $('#play-curves').addEventListener('click', function () { $$('.curve').forEach(playCurve); });
 
   /* ---------- tour ---------- */
   var STEPS = [
@@ -1079,14 +1203,19 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     { target: '[data-tour="material"]', title: 'Turn the dial', body: 'Slide from clear to solid and watch the contrast figure change.' },
     { target: '[data-tour="replay"]', title: 'One ceremony per screen', body: 'Press Replay to watch it land. Then this step goes back where it came from.' }
   ];
-  var step = $('#tour-step'), tourI = -1, tourLauncher = null, live = $('#live'), tourNote = $('#tour-note');
+  var step = $('#tour-step'), spot = $('#spot'), tourI = -1, tourLauncher = null, tourNote = $('#tour-note');
   function corePos() { var r = toggle.getBoundingClientRect(); return { x: r.left, y: r.top }; }
   function place(travel) {
     if (tourI < 0) return;
     step.style.transition = travel === true ? '' : 'none';
+    spot.style.transition = travel === true ? '' : 'none';
     var t = $(STEPS[tourI].target).getBoundingClientRect(), w = step.offsetWidth, h = step.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
     var x = Math.max(16, Math.min(t.left, vw - w - 16));
-    var below = t.bottom + 14, above = t.top - h - 14;
+    spot.style.left = (t.left - 8) + 'px'; spot.style.top = (t.top - 8) + 'px';
+    spot.style.width = (t.width + 16) + 'px'; spot.style.height = (t.height + 16) + 'px';
+    var sv = $('svg', spot); sv.setAttribute('viewBox', '0 0 ' + (t.width + 30) + ' ' + (t.height + 30));
+    $('path', sv).setAttribute('d', loopPath(t.width + 30, t.height + 30, Math.min(20, (t.height + 30) / 2.1)));
+    var below = t.bottom + 26, above = t.top - h - 26;
     var y = (below + h <= vh - 16) ? below : (above >= 16 ? above : Math.max(16, vh - h - 16));
     step.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
   }
@@ -1101,7 +1230,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     live.textContent = 'Step ' + (i + 1) + ' of ' + STEPS.length + ': ' + s.title;
     target.classList.add('tour-target');
     if (!target.closest('.core')) target.scrollIntoView({ block: 'center', behavior: 'auto' });
-    place(true);
+    place(true); redraw(spot);
     step.focus({ preventScroll: true });
   }
   function startTour(launcher) {
@@ -1115,6 +1244,9 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     step.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) scale(0.3)';
     void step.offsetWidth;
     step.style.transition = ''; step.style.opacity = '1';
+    spot.hidden = false; spot.style.transition = 'none'; spot.style.opacity = '0';
+    spot.style.left = c.x + 'px'; spot.style.top = c.y + 'px'; spot.style.width = '56px'; spot.style.height = '56px';
+    void spot.offsetWidth; spot.style.transition = ''; spot.style.opacity = '1';
     showStep(from);
   }
   function endTour(finished) {
@@ -1126,7 +1258,8 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     step.style.transition = '';
     step.style.opacity = '0';
     step.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) scale(0.3)';
-    setTimeout(function () { if (step.hidePopover) { try { step.hidePopover(); } catch (e) {} } }, ms('--qs-dur-spread') + 40);
+    spot.style.transition = ''; spot.style.opacity = '0';
+    setTimeout(function () { if (tourI >= 0) return; spot.hidden = true; if (step.hidePopover) { try { step.hidePopover(); } catch (e) {} } }, ms('--qs-dur-spread') + 40);
     if (tourLauncher) tourLauncher.focus({ preventScroll: true });
     updateTourNote();
   }

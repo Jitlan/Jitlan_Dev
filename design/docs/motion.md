@@ -76,6 +76,12 @@ global `* { animation-duration: 0.01ms }` reset; it breaks fades that reduced-mo
 users still benefit from. Also provide the switch in-app (the Playfulness setting
 covers decorative motion; see `easter-eggs.md`).
 
+## Looking at motion
+
+Every curve on the kit page plays on its own and at three speeds: normal, half and
+slow (a quarter). Judge a curve at slow, where overshoot and settle are visible, then
+confirm it at normal, where it has to feel right.
+
 ## Hard limits
 
 - Nothing flashes more than three times a second.
