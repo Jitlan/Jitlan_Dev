@@ -59,9 +59,17 @@ ships with a library's stock look.
 
 - **Comes from:** the core. It leaves, rests near it, and rejoins it.
 - **Made of:** ink or metal.
-- **A11y:** `role="status"` (polite). Never the only record of an outcome: whatever it
-  says is also visible in the page. Stays until dismissed if it has an action; otherwise
-  at least five seconds, pausable on hover and focus.
+- **Stacking.** Toasts queue. The front one is readable; up to three wait behind it,
+  each 10px higher and 5% smaller, showing only their top edge. The stack never shows
+  more than four. When a fifth arrives the front one drops: its text goes, the pill
+  pulls in to a bead, stretches, and falls back into the core. The next one comes
+  forward.
+- **Timing.** Each toast gets five seconds *as the front one*, not from when it was
+  sent. Hover or focus holds it; pressing it dismisses it.
+- **A11y:** the visual stack is hidden from assistive technology; each message is sent
+  once to a polite `role="status"` region when it is added. Never the only record of
+  an outcome: whatever it says is also visible in the page. Under reduced motion the
+  front one fades instead of dropping.
 
 ## Mark
 

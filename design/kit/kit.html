@@ -253,12 +253,24 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .core-menu .tourlink { background: var(--qs-ink); color: var(--qs-card); font-weight: 700; }
 .core-menu .tourlink:hover { background: var(--qs-ink); }
 
-.bead { position: fixed; z-index: 49; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  max-width: min(300px, calc(100vw - 32px)); padding: 0.75rem 1rem; border-radius: 28px; font-size: 0.9375rem; font-weight: 600;
-  opacity: 0; transform: scale(0.3); transform-origin: calc(100% - 28px) calc(100% - 28px); pointer-events: none;
-  transition: transform var(--qs-dur-gather) var(--qs-ease-gather), opacity var(--qs-dur-fade) ease; }
-.bead.out { opacity: 1; transform: translateY(-68px) scale(1); transition-timing-function: var(--qs-ease-spread), ease; transition-duration: var(--qs-dur-spread), var(--qs-dur-fade); }
-.bead.fun { font-family: var(--qs-voice-fun); font-size: 1.0625rem; }
+/* Toasts: beads from the core. Up to four show, the front one readable and three
+   stacked behind it. A fifth makes the front one drop back into the core as liquid. */
+.toasts { position: fixed; z-index: 49; height: 0; pointer-events: none;
+  right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  width: min(300px, calc(100vw - 32px)); }
+.toast { position: absolute; right: 0; bottom: 0; width: 100%; min-height: 44px; padding: 0.7rem 1rem; border-radius: 22px; overflow: hidden;
+  background: var(--qs-ink); color: var(--qs-card); border: 1px solid var(--qs-edge); box-shadow: 0 4px 12px var(--qs-shadow);
+  font-size: 0.9375rem; font-weight: 600; line-height: 1.35; display: flex; align-items: center;
+  transform-origin: calc(100% - 28px) 100%; z-index: calc(4 - var(--i));
+  transform: translateY(calc(var(--i) * -10px)) scale(calc(1 - var(--i) * 0.05));
+  transition: transform var(--qs-dur-gather) var(--qs-ease-spread), opacity var(--qs-dur-fade) ease; }
+.toast.front { pointer-events: auto; cursor: pointer; }
+.toast:not(.front) { height: var(--front-h, 44px); }
+.toast .t { transition: opacity var(--qs-dur-fade) ease; }
+.toast:not(.front) .t, .toast.dropping .t { opacity: 0; }
+.toast.enter { transform: translateY(68px) scale(0.2); opacity: 0; transition: none; }
+.toast.fun .t { font-family: var(--qs-voice-fun); font-size: 1.0625rem; }
+.toast.dropping { width: 44px; height: 44px; min-height: 0; padding: 0; z-index: 5; pointer-events: none; }
 
 /* ---------- rail demo ---------- */
 .frame { border-radius: var(--qs-radius-pool); border: 1px solid var(--qs-outline); background: var(--qs-paper); padding: 12px; display: flex; gap: 12px; min-height: 250px; overflow: hidden; }
@@ -517,8 +529,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   <p class="lede">One element per screen that everything else comes out of and goes back into. Nothing teleports. On this page it is the puck in the bottom corner.</p>
   <div class="row">
     <button class="btn primary" type="button" id="open-core">Open the core</button>
-    <button class="btn" type="button" id="send-bead">Send a bead</button>
+    <button class="btn" type="button" id="send-bead">Send a toast</button>
+    <button class="btn" type="button" id="send-five">Send five</button>
   </div>
+  <p class="small muted" style="max-width:68ch">Toasts leave the core and stack: the front one is readable, up to three wait behind it. It never shows more than four. A fifth makes the front one pull in to a bead and drop back into the core. Each front toast stays five seconds; hover to hold it, press it to dismiss.</p>
 
   <h3>Rail: the desktop form of the same core</h3>
   <div class="frame">
@@ -746,7 +760,8 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   </button>
 </nav>
 <div class="spot" id="spot" aria-hidden="true" hidden><svg><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:3.5;--delay:260ms"></path></svg></div>
-<div class="bead inkmat" id="bead" role="status"></div>
+<div class="toasts" id="toasts" aria-hidden="true"></div>
+<div class="vh" role="status" id="toast-live"></div>
 
 <div class="tour-step glass" id="tour-step" popover="manual" role="dialog" aria-labelledby="ts-title" aria-describedby="ts-body" tabindex="-1">
   <h3 id="ts-title"></h3>
@@ -986,17 +1001,51 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     $$('main section').forEach(function (s) { io.observe(s); });
   }
 
-  /* bead: leaves the core, rests, rejoins it */
-  var beadEl = $('#bead'), beadTimer, live = $('#live');
-  function bead(text, fun) {
-    clearTimeout(beadTimer);
-    beadEl.textContent = text;
-    beadEl.classList.toggle('fun', !!fun);
-    beadEl.classList.add('out');
-    beadTimer = setTimeout(function () { beadEl.classList.remove('out'); }, 5000);
+  /* toasts: beads that leave the core, queue up to four deep, and drop back into it */
+  var toastHost = $('#toasts'), toastLive = $('#toast-live'), live = $('#live'), toastQ = [], toastTimer, toastPaused = false;
+  function layoutToasts() {
+    toastQ.forEach(function (t, i) { t.style.setProperty('--i', i); t.classList.toggle('front', i === 0); });
+    if (toastQ[0]) toastHost.style.setProperty('--front-h', toastQ[0].offsetHeight + 'px');
+    clearTimeout(toastTimer);
+    if (toastQ.length && !toastPaused) toastTimer = setTimeout(dropFront, 5000);
   }
-  var beadLines = ['Saved', 'Copied to clipboard', '3 items archived', 'Back online'], beadI = 0;
+  function dropFront() {
+    var t = toastQ.shift(); if (!t) return;
+    t.classList.remove('front');
+    if (reduced()) { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 160); layoutToasts(); return; }
+    /* as liquid: the text goes, the pill pulls in to a bead, stretches and falls into the core */
+    var r = t.getBoundingClientRect();
+    t.classList.add('dropping');
+    var pull = animate(t, [{ width: r.width + 'px', height: r.height + 'px', transform: 'none' }, { width: '44px', height: '44px', transform: 'none' }],
+      { duration: 220, easing: 'cubic-bezier(.5, 0, .2, 1)', fill: 'forwards' });
+    pull.onfinish = function () {
+      var fall = animate(t, [
+        { transform: 'translate(-6px, 0) scale(1, 1)', borderRadius: '50%' },
+        { transform: 'translate(-6px, 30px) scale(0.8, 1.35)', borderRadius: '50% 50% 50% 50% / 62% 62% 38% 38%', offset: 0.6 },
+        { transform: 'translate(-6px, 74px) scale(0.9, 0.9)', borderRadius: '50%' }
+      ], { duration: 340, easing: 'cubic-bezier(.55, 0, .9, .45)', fill: 'forwards' });
+      fall.onfinish = function () { t.remove(); };
+    };
+    layoutToasts();
+  }
+  function bead(text, fun) {
+    var t = document.createElement('div'); t.className = 'toast enter' + (fun ? ' fun' : '');
+    var span = document.createElement('span'); span.className = 't'; span.textContent = text; t.appendChild(span);
+    t.style.setProperty('--i', Math.min(toastQ.length, 3));
+    t.addEventListener('click', function () { if (t === toastQ[0]) dropFront(); });
+    t.addEventListener('pointerenter', function () { toastPaused = true; clearTimeout(toastTimer); });
+    t.addEventListener('pointerleave', function () { toastPaused = false; layoutToasts(); });
+    toastHost.appendChild(t); toastQ.push(t);
+    toastLive.textContent = text;
+    void t.offsetWidth; t.classList.remove('enter');
+    while (toastQ.length > 4) dropFront();
+    layoutToasts();
+  }
+  var beadLines = ['Saved', 'Copied to clipboard', '3 items archived', 'Back online', 'Export ready', 'Maya joined the trip'], beadI = 0;
   $('#send-bead').addEventListener('click', function () { bead(beadLines[beadI++ % beadLines.length]); });
+  $('#send-five').addEventListener('click', function () {
+    for (var k = 0; k < 5; k++) setTimeout(function () { bead(beadLines[beadI++ % beadLines.length]); }, k * 260);
+  });
 
   /* rail */
   var rail = $('#rail'), railToggle = $('#rail-toggle');
