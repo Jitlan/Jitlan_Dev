@@ -120,3 +120,12 @@ WebGL — software rendering works, just slowly).
 npm i -D @playwright/test && npx playwright install chromium   # one-time setup
 npx playwright test                                            # requires server on :8081
 ```
+
+## Design language
+
+`DESIGN.md` is the working spec for Quicksilver, a personal design language for apps
+built with Claude Code (one core element per screen, three typographic voices, five
+materials, a tour and an easter egg in every app). The documentation, research and
+open ideas behind it are in `design/`; start at `design/README.md`. None of it is part
+of the served site. It is headed for its own plugin repository; see
+`design/docs/plugin-plan.md`.

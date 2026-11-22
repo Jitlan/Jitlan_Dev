@@ -1,0 +1,209 @@
+/*
+ * Quicksilver tokens. The single source for colour, type, shape, material and motion.
+ * Mirrors the front matter of /DESIGN.md. Change a value in both places, or generate
+ * one from the other (see design/docs/plugin-plan.md).
+ *
+ * Usage: import once, before any component styles.
+ *   @import "tokens.css" layer(tokens);
+ * Scheme: follows the OS; force with <html data-theme="light|dark">.
+ * Material dial: <html data-material="solid|clear"> (default: clear where supported).
+ * Playfulness: <html data-play="off"> silences fun-voice animation and easter eggs.
+ */
+
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+
+    /* ---- Colour roles (default cast: VoteHound Working Copy) ---- */
+    --qs-ink: light-dark(#0b1220, #f1f5f9);
+    --qs-paper: light-dark(#f1f5f9, #020617);
+    --qs-card: light-dark(#ffffff, #0f172a);
+    --qs-muted: light-dark(#5e6773, #9aa4b2);
+    --qs-outline: light-dark(#e2e8f0, #334155);   /* decorative hairline */
+    --qs-edge: light-dark(#7c8798, #6b7a90);      /* control and material boundary, 3:1 */
+    --qs-pen-a: light-dark(#2563eb, #4d8df7);
+    --qs-pen-b: light-dark(#c70011, #f87171);
+    --qs-highlighter: #e8c97a;                    /* fill behind ink text only */
+    --qs-on-highlighter: #0b1220;
+    --qs-pen-a-wash: light-dark(#c9dbfc, #1e3a8a);
+    --qs-pen-b-wash: light-dark(#f8cdd1, #7f1d1d);
+    --qs-success: light-dark(#00712e, #10b981);
+    --qs-warning: light-dark(#a55800, #fbbf24);
+    --qs-danger: var(--qs-pen-b);
+    --qs-focus: var(--qs-pen-a);
+
+    /* ---- Voices ---- */
+    --qs-voice-pro: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+    --qs-voice-fancy: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --qs-voice-fun: "Shantell Sans", "Comic Neue", "Segoe Print", cursive;
+    --qs-voice-mono: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+    /* The reading-font setting overrides this one variable. */
+    --qs-voice-reading: var(--qs-voice-pro);
+
+    --qs-text-sm: 0.9375rem;
+    --qs-text-md: 1.0625rem;
+    --qs-text-lg: 1.25rem;
+    --qs-text-xl: 1.5rem;
+    --qs-text-2xl: 2rem;
+    --qs-text-ceremony: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+    --qs-leading: 1.5;
+    --qs-measure: 68ch;
+
+    /* ---- Space and shape ---- */
+    --qs-space-1: 4px;
+    --qs-space-2: 8px;
+    --qs-space-3: 12px;
+    --qs-space-4: 16px;
+    --qs-space-6: 24px;
+    --qs-space-8: 32px;
+    --qs-space-12: 48px;
+    --qs-space-16: 64px;
+    --qs-target: 44px;
+
+    --qs-radius-control: 8px;
+    --qs-radius-card: 10px;
+    --qs-radius-pool: 20px;
+    --qs-radius-core: 28px;
+    --qs-radius-full: 9999px;
+    --qs-core-size: 56px;
+
+    --qs-lift: 0 0 0 1px var(--qs-outline),
+      0 6px 16px light-dark(rgb(11 18 32 / 0.12), rgb(0 0 0 / 0.5));
+
+    /* ---- Motion: effects channel (never bounces) ---- */
+    --qs-dur-feedback: 100ms;
+    --qs-dur-fade: 180ms;
+    --qs-ease-effect: ease;
+
+    /* ---- Motion: spatial channel (springs, may overshoot) ---- */
+    --qs-dur-settle: 280ms;
+    --qs-dur-gather: 380ms;
+    --qs-dur-spread: 460ms;
+    --qs-dur-ceremony: 800ms;
+    --qs-beat: 300ms;
+
+    /* Bezier forms: work everywhere, and are what the VoteHound boards use. */
+    --qs-ease-settle: cubic-bezier(0.5, 0, 0.2, 1);
+    --qs-ease-gather: cubic-bezier(0.5, 0, 0.2, 1);
+    --qs-ease-spread: cubic-bezier(0.5, -0.15, 0.2, 1.25);
+    --qs-ease-ceremony: cubic-bezier(0.3, 1.3, 0.4, 1);
+
+    /* ---- Material ---- */
+    --qs-glass-blur: 18px;
+    --qs-glass-scrim: 0.78;   /* minimum opacity of the tint under glass text */
+  }
+
+  /* Real springs where linear() is supported: damped-spring step responses sampled
+     at 24 points. spread: 8% overshoot. ceremony: 16% overshoot. */
+  @supports (transition-timing-function: linear(0, 1)) {
+    :root {
+      --qs-ease-spread: linear(
+        0, 0.041, 0.144, 0.281, 0.43, 0.576, 0.709, 0.822, 0.914, 0.983, 1.032,
+        1.062, 1.079, 1.084, 1.08, 1.072, 1.061, 1.048, 1.036, 1.025, 1.015,
+        1.008, 1.002, 0.998, 1
+      );
+      --qs-ease-gather: linear(
+        0, 0.035, 0.119, 0.23, 0.35, 0.468, 0.578, 0.674, 0.757, 0.825, 0.879,
+        0.921, 0.953, 0.977, 0.993, 1.004, 1.01, 1.014, 1.015, 1.015, 1.014,
+        1.012, 1.011, 1.009, 1
+      );
+      --qs-ease-ceremony: linear(
+        0, 0.049, 0.174, 0.34, 0.521, 0.696, 0.849, 0.974, 1.065, 1.124, 1.155,
+        1.163, 1.153, 1.132, 1.104, 1.075, 1.046, 1.022, 1.002, 0.988, 0.979,
+        0.974, 0.973, 0.975, 1
+      );
+    }
+  }
+
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+
+  /* Reduce, don't remove: spatial motion collapses to a short cross-fade. */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --qs-dur-settle: 150ms;
+      --qs-dur-gather: 150ms;
+      --qs-dur-spread: 150ms;
+      --qs-dur-ceremony: 150ms;
+      --qs-beat: 0ms;
+      --qs-ease-settle: ease;
+      --qs-ease-gather: ease;
+      --qs-ease-spread: ease;
+      --qs-ease-ceremony: ease;
+    }
+  }
+
+  /* Solid on request, and whenever the OS asks for less transparency or more contrast. */
+  :root[data-material="solid"] { --qs-glass-blur: 0px; --qs-glass-scrim: 1; }
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    :root { --qs-glass-blur: 0px; --qs-glass-scrim: 1; }
+  }
+}
+
+/* ---- Voices and emphasis ---- */
+@layer base {
+  body {
+    background: var(--qs-paper);
+    color: var(--qs-ink);
+    font: 400 var(--qs-text-md) / var(--qs-leading) var(--qs-voice-pro);
+  }
+  .qs-fancy { font-family: var(--qs-voice-fancy); font-optical-sizing: auto; }
+  .qs-fun { font-family: var(--qs-voice-fun); }
+  .qs-reading { font-family: var(--qs-voice-reading); max-inline-size: var(--qs-measure); }
+  code, kbd, samp, .qs-mono { font-family: var(--qs-voice-mono); }
+
+  strong { font-weight: 700; }
+  a {
+    color: var(--qs-pen-a);
+    text-decoration: underline solid;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.18em;
+  }
+  dfn, abbr[title] {
+    font-style: normal;
+    text-decoration: underline wavy var(--qs-muted);
+    text-decoration-thickness: 0.06em;
+    text-underline-offset: 0.22em;
+    cursor: help;
+  }
+  mark {
+    background: var(--qs-highlighter);
+    color: var(--qs-on-highlighter);
+    padding-inline: 0.15em;
+    border-radius: 2px;
+  }
+  :focus-visible {
+    outline: 3px solid var(--qs-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* ---- Materials ---- */
+@layer materials {
+  .qs-solid, .qs-paper, .qs-glass, .qs-metal {
+    background: var(--qs-card);
+    color: var(--qs-ink);
+    border: 1px solid var(--qs-edge);
+  }
+  .qs-solid.qs-resting { border-color: var(--qs-outline); }
+  .qs-ink { background: var(--qs-ink); color: var(--qs-card); border: 1px solid var(--qs-ink); }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .qs-glass {
+      background: color-mix(in oklab, var(--qs-card) calc(var(--qs-glass-scrim) * 100%), transparent);
+      backdrop-filter: blur(var(--qs-glass-blur)) saturate(1.4);
+    }
+  }
+  .qs-metal {
+    background:
+      radial-gradient(120% 90% at var(--qs-spec-x, 30%) var(--qs-spec-y, 20%),
+        #ffffff 0%, transparent 55%),
+      linear-gradient(160deg, #dfe5ee, #9aa4b2);
+    /* Mercury is silver in both schemes, so its text is always ink (7:1 at the
+       darkest stop). Recast the two stops per app, then re-check. */
+    color: var(--qs-on-highlighter);
+  }
+  @media (forced-colors: active) {
+    .qs-solid, .qs-paper, .qs-glass, .qs-metal, .qs-ink { border: 1px solid CanvasText; }
+  }
+}
