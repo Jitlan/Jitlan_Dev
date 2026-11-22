@@ -40,9 +40,11 @@ If two elements both seem to be the core, the screen is two screens.
    component.
 2. **One body.** A spread is the *same element* changing size, shape and material. Not
    one element fading out while a different one fades in next to it.
-3. **Conservation.** Things do not appear at full size. A drop starts at the scale and
-   position of its origin. When a drop is dismissed it goes back where it came from,
-   not off the nearest edge.
+3. **Liquid, not literal.** Things do not appear at full size: a drop starts at the
+   position of its origin, usually as a bead, and when it is dismissed it goes back
+   where it came from, not off the nearest edge. But volume is not conserved. A 44px
+   bead may widen into a 300px toast or grow into a whole panel. The liquid is a look,
+   not a physics simulation.
 4. **One at a time.** Stage it. The body moves first; its contents arrive a beat
    later, nearest the origin first. One spread at a time per screen.
 5. **Interruptible.** A spread can be reversed mid-flight: by the control that started

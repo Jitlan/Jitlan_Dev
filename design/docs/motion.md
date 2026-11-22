@@ -24,6 +24,28 @@ API and match the feel.
 Durations sit inside the 100–500ms range NN/g recommends for UI; `ceremony` is the one
 deliberate exception and is allowed once per screen.
 
+## Liquid character
+
+Liquid is how spatial motion looks by default, not a special effect reserved for the
+core. Five moves cover almost everything, and none of them needs a filter:
+
+| Move | What happens | Used by |
+|---|---|---|
+| **Bead** | A thing travels as a small round bead and widens when it lands; it pulls back in to a bead to leave. | Toasts, button follow-ups, tour steps |
+| **Stretch** | It elongates in the direction of travel and recovers on arrival. | A falling toast, a rising bead |
+| **Squash** | It flattens under pressure and springs back past its rest size. | Button press, the puck when touched |
+| **Reach, then let go** | A sliding part grows to span both positions, then releases the old one. | Switch thumb, selected-option indicator, progress head |
+| **Soft in flight** | Corners go organic and uneven while a body is changing size, and firm up at rest. | Card to dialog, the puck wobble |
+
+A goo filter (blur plus alpha threshold) adds the visible neck between two bodies. Use
+it only on a decorative layer that holds no text and no focus ring: a progress fill and
+its head, a paw's toes, the ceremony word while it forms, the liquid-layer demo.
+
+Volume does not have to be realistic. A bead may become a panel.
+
+The frequency budget below still applies. Liquid changes how a thing moves, not how
+often it is allowed to.
+
 ## The frequency budget
 
 | How often the user triggers it | Motion allowed |

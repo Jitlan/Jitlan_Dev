@@ -361,6 +361,13 @@ the core; to **gather** is to return.
 6. *Budgeted.* The more often an action happens, the less it moves. Keyboard-driven
    and high-frequency actions do not animate at all.
 
+**Liquid is the default character.** Anything that moves, moves like a liquid: it
+stretches in the direction of travel, squashes on arrival, goes soft at the corners in
+flight and firms up at rest. Small things travel as beads and widen when they land. A
+control that slides (a switch thumb, a selected-option indicator, a progress head)
+reaches the new position first and lets go of the old one second. It is a look, not a
+simulation: nothing has to keep its volume, and a bead may grow into a panel.
+
 **Two channels.** *Spatial* motion (position, size, shape) uses springs and may
 overshoot: `spread` 460ms, `gather` 380ms, `settle` 280ms. *Effects* (colour, opacity)
 never bounce: `fade` 180ms, `feedback` 100ms. `ceremony` (800ms) is reserved for the
@@ -439,6 +446,9 @@ collections are scaffolding at most; nothing ships with its stock look. See
   three cards) or the second-generation ones (cream, serif, terracotta; tracked
   all-caps eyebrows; `01 / 02 / 03` markers; mono micro-labels; arrows after links).
 - Don't put text on glass without a scrim, or make content itself translucent.
+- Don't move a component rigidly (a straight slide, a plain scale) where it could
+  stretch, squash or travel as a bead. Don't apply a goo filter to anything holding
+  text or a focus ring.
 - Don't loop anything, animate a keyboard action, or let motion carry the only copy of
   a piece of information.
 - Don't underline anything that is not a link, set long passages in italic, or use the

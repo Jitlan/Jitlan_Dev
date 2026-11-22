@@ -140,6 +140,12 @@
   }
 }
 
+/* ---- Liquid character: squash under the press, spring back past rest ---- */
+@layer base {
+  button, [role="button"] { transition: transform var(--qs-dur-settle) var(--qs-ease-spread); }
+  button:active, [role="button"]:active { transform: scale(0.96, 0.9); transition-duration: 80ms; }
+}
+
 /* ---- Voices and emphasis ---- */
 @layer base {
   body {

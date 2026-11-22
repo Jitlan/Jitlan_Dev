@@ -131,7 +131,10 @@ button { cursor: pointer; }
   display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--qs-edge); background: var(--qs-card); color: var(--qs-ink);
   transition: background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease, border-color var(--qs-dur-fade) ease; }
 .btn:hover { border-color: var(--qs-ink); }
-.btn:active { transform: translateY(1px); }
+.btn { transition: background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease, border-color var(--qs-dur-fade) ease, transform var(--qs-dur-settle) var(--qs-ease-spread); }
+.btn:active { transform: scale(0.96, 0.9); transition-duration: var(--qs-dur-fade), var(--qs-dur-fade), var(--qs-dur-fade), 80ms; }
+@keyframes btn-wobble { 0% { transform: scale(1.18, 0.86); } 40% { transform: scale(0.92, 1.1); } 70% { transform: scale(1.04, 0.97); } 100% { transform: none; } }
+.btn.is-icon { animation: btn-wobble 520ms ease-out 1; }
 .btn.primary { background: var(--qs-ink); color: var(--qs-card); border-color: var(--qs-ink); }
 .btn.danger { color: var(--qs-pen-b); border-color: var(--qs-pen-b); }
 .btn[aria-pressed="true"] { background: var(--qs-card); color: var(--qs-ink); border-color: var(--qs-edge); }
@@ -165,7 +168,19 @@ button { cursor: pointer; }
 .field .err { font-size: 0.875rem; color: var(--qs-pen-b); font-weight: 600; }
 input[type="range"] { accent-color: var(--qs-pen-a); min-height: 28px; width: 100%; }
 .switch { display: inline-flex; align-items: center; gap: 0.5rem; min-height: var(--qs-target); font-size: 0.9375rem; font-weight: 600; }
-.switch input { width: 1.25rem; height: 1.25rem; accent-color: var(--qs-pen-a); }
+/* Liquid switch: the thumb is a bead that stretches across the track before it lets go. */
+.switch input { appearance: none; -webkit-appearance: none; flex-shrink: 0; margin: 0; position: relative; width: 48px; height: 28px; border-radius: 14px;
+  background: var(--qs-card); border: 1px solid var(--qs-edge); cursor: pointer; transition: background var(--qs-dur-fade) ease, border-color var(--qs-dur-fade) ease; }
+.switch input::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 10px; background: var(--qs-ink); }
+.switch input:checked { background: var(--qs-pen-a); border-color: var(--qs-pen-a); }
+.switch input:checked::before { left: 23px; background: var(--qs-card); }
+.switch input:active::before { width: 26px; }
+.switch input:checked:active::before { left: 17px; }
+@keyframes sw-on { 0% { left: 3px; width: 20px; } 45% { left: 3px; width: 40px; } 100% { left: 23px; width: 20px; } }
+@keyframes sw-off { 0% { left: 23px; width: 20px; } 45% { left: 3px; width: 40px; } 100% { left: 3px; width: 20px; } }
+.switch input.touched:checked::before { animation: sw-on var(--qs-dur-settle) var(--qs-ease-settle) 1; }
+.switch input.touched:not(:checked)::before { animation: sw-off var(--qs-dur-settle) var(--qs-ease-settle) 1; }
+@media (forced-colors: active) { .switch input::before { background: CanvasText; } .switch input:checked { background: Highlight; } }
 table { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
 th, td { text-align: left; padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--qs-outline); vertical-align: top; }
 th { font-weight: 700; font-size: 0.875rem; color: var(--qs-muted); }
@@ -229,6 +244,9 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
     border-radius var(--qs-dur-spread) ease, background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease; }
 .core[data-open="true"] { width: 292px; height: 348px; max-width: calc(100vw - 32px); border-radius: var(--qs-radius-pool);
   background: var(--qs-card); color: var(--qs-ink); box-shadow: 0 0 0 1px var(--qs-edge), 0 6px 16px var(--qs-shadow); }
+@keyframes puck { 0% { transform: none; border-radius: 28px; } 30% { transform: scale(1.1, 0.9); border-radius: 30px 26px 33px 24px / 24px 33px 26px 30px; }
+  60% { transform: scale(0.95, 1.06); border-radius: 26px 31px 25px 32px / 31px 25px 32px 26px; } 100% { transform: none; border-radius: 28px; } }
+.core.nudge[data-open="false"] { animation: puck 560ms ease-out 1; }
 /* The toggle is the top layer of the core: menu items pass underneath it, never over it.
    Open, the cross sits on its own ink disc so it reads as a different kind of action. */
 .core-toggle { position: absolute; z-index: 3; right: 0; bottom: 0; width: 56px; height: 56px; padding: 0; border: 0; background: transparent; color: inherit; border-radius: 28px;
@@ -268,7 +286,7 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .toast:not(.front) { height: var(--front-h, 44px); }
 .toast .t { transition: opacity var(--qs-dur-fade) ease; }
 .toast:not(.front) .t, .toast.dropping .t { opacity: 0; }
-.toast.enter { transform: translateY(68px) scale(0.2); opacity: 0; transition: none; }
+.toast.enter .t { opacity: 0; }
 .toast.fun .t { font-family: var(--qs-voice-fun); font-size: 1.0625rem; }
 .toast.dropping { width: 44px; height: 44px; min-height: 0; padding: 0; z-index: 5; pointer-events: none; }
 
@@ -346,10 +364,23 @@ del { text-decoration-thickness: 0.1em; color: var(--qs-muted); } ins { text-dec
 .curve .dot { position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--qs-ink); }
 .curve .info { min-width: 0; }
 .curve .btn { min-height: 36px; padding: 0 0.75rem; margin-top: 0.5rem; }
-.speed { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; }
-.speed legend { float: left; margin-right: 1rem; padding: 0; line-height: 44px; }
-.speed label { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px; font-size: 0.9375rem; }
-.speed input { width: 1.125rem; height: 1.125rem; accent-color: var(--qs-pen-a); }
+.seg { border: 1px solid var(--qs-edge); border-radius: 23px; padding: 3px; margin: 0; display: inline-flex; position: relative; background: var(--qs-card); min-inline-size: 0; }
+.seg label { position: relative; z-index: 1; min-height: 38px; padding: 0 0.9rem; display: inline-flex; align-items: center; font-size: 0.9375rem; font-weight: 600; border-radius: 19px; cursor: pointer;
+  transition: color var(--qs-dur-fade) ease; }
+.seg input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.seg label:has(input:checked) { color: var(--qs-card); }
+.seg label:has(input:focus-visible) { outline: 3px solid var(--qs-pen-a); outline-offset: 2px; }
+/* The indicator is one bead: it stretches to reach the new option, then lets go of the old one. */
+.seg-ind { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0; border-radius: 19px; background: var(--qs-ink);
+  transition: left var(--qs-dur-settle) var(--qs-ease-spread), width var(--qs-dur-settle) var(--qs-ease-spread); }
+
+.lprog { position: relative; flex: 1 1 240px; min-width: 0; height: 36px; }
+.lprog::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 12px; border-radius: 6px; background: var(--qs-card); border: 1px solid var(--qs-edge); }
+.lprog-goo { position: absolute; inset: 0; filter: url(#goo-md); }
+.lp-fill, .lp-head { position: absolute; background: var(--qs-pen-a); }
+.lp-fill { left: 0; top: 12px; height: 12px; border-radius: 6px; width: calc((100% - 12px) * var(--p)); transition: width var(--qs-dur-spread) var(--qs-ease-settle) 60ms; }
+.lp-head { top: 6px; width: 24px; height: 24px; border-radius: 50%; left: calc((100% - 24px) * var(--p)); transition: left var(--qs-dur-spread) var(--qs-ease-spread); }
+.where li { margin-bottom: 0.25rem; }
 
 /* ---------- empty state ---------- */
 .empty { border-radius: var(--qs-radius-pool); border: 1px dashed var(--qs-edge); padding: 2rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
@@ -566,10 +597,21 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
       </svg>
     </button>
     <div style="display:flex;flex-direction:column;gap:0.5rem;min-width:0;flex:1 1 240px">
-      <p class="small">Drops leave the body and rejoin it with a visible neck between them. This layer is decoration only: it sits behind real controls and is hidden from assistive technology.</p>
+      <p class="small">Drops leave the body and rejoin it with a visible neck between them. This layer is decoration only: it sits behind real controls and is hidden from assistive technology. It is a look, not a simulation: nothing has to keep its volume.</p>
       <div class="row"><button class="btn" type="button" id="liquid-toggle" aria-pressed="false">Spread</button></div>
     </div>
   </div>
+
+  <h3>Where liquid shows up</h3>
+  <ul class="small where" style="padding-left:1.1rem;max-width:68ch;margin:0">
+    <li><strong>The puck</strong> wobbles once when you reach for it and when a toast leaves or rejoins it.</li>
+    <li><strong>Toasts</strong> rise out of it as a bead and widen; the front one drops back in as a bead.</li>
+    <li><strong>Buttons</strong> squash under the press and spring back; a follow-up pulls the button in to a wobbling bead.</li>
+    <li><strong>Switches and the speed control</strong> stretch a bead across to the new position before letting go of the old one.</li>
+    <li><strong>Progress</strong> is led by a bead that pulls the fill after it.</li>
+    <li><strong>Cards opening into a dialog</strong> go soft at the corners in flight and firm up on arrival.</li>
+    <li><strong>The ceremony</strong> word separates out of a bead of ink.</li>
+  </ul>
 
   <h3>Drop to pool</h3>
   <p class="small muted">Press a card. It is the same body growing into a dialog, and it goes back where it came from.</p>
@@ -626,10 +668,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   <p class="lede">Two channels. Position, size and shape move on springs and may overshoot. Colour and opacity never bounce. The more often something happens, the less it moves.</p>
   <div class="row">
     <button class="btn" type="button" id="play-curves">Play all</button>
-    <fieldset class="speed"><legend class="lab">Speed</legend>
-      <label><input type="radio" name="speed" value="0.25"> Slow</label>
-      <label><input type="radio" name="speed" value="0.5"> Half</label>
-      <label><input type="radio" name="speed" value="1" checked> Normal</label>
+    <fieldset class="seg" id="speed-seg"><legend class="vh">Playback speed</legend><span class="seg-ind" aria-hidden="true"></span>
+      <label><input type="radio" name="speed" value="0.25"><span>Slow</span></label>
+      <label><input type="radio" name="speed" value="0.5"><span>Half</span></label>
+      <label><input type="radio" name="speed" value="1" checked><span>Normal</span></label>
     </fieldset>
   </div>
   <div class="curves" id="curves"></div>
@@ -656,6 +698,13 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <button class="btn primary" type="button" id="follow" data-after="paw"><span class="lbl">Follow</span></button>
   </div>
   <p class="small muted" style="max-width:68ch">Any button can take a follow-up: after the press it pulls in to an icon for what it just did, the icon makes one small movement, and the button comes back. Follow comes back as Unfollow. A destructive button plays its follow-up only once the deletion has really happened, never in place of a confirmation.</p>
+  <h3>Progress</h3>
+  <div class="row">
+    <div class="lprog" id="lprog" role="progressbar" aria-label="Export" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20" style="--p:0.2"><div class="lprog-goo" aria-hidden="true"><span class="lp-fill"></span><span class="lp-head"></span></div></div>
+    <span class="mono" id="lprog-val">20%</span>
+    <button class="btn" type="button" id="lprog-add">Add 20%</button>
+  </div>
+  <p class="small muted" style="max-width:68ch">The fill is led by a bead that runs ahead and pulls the rest after it.</p>
   <div class="grid">
     <div class="field"><label for="f-name">Trip name</label><input type="text" id="f-name" value="Lisbon, March"><span class="hint">Shown on the shared page.</span></div>
     <div class="field"><label for="f-mail">Share with</label><input type="email" id="f-mail" value="maya@" aria-invalid="true" aria-describedby="f-mail-err"><span class="err" id="f-mail-err">That address is missing a domain. Add the part after the @.</span></div>
@@ -740,6 +789,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   <defs>
     <filter id="goo-ui" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="9"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"></feColorMatrix></filter>
     <filter id="goo-text" x="-20%" y="-40%" width="140%" height="180%" color-interpolation-filters="sRGB"><feGaussianBlur id="goo-text-blur" in="SourceGraphic" stdDeviation="0"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10"></feColorMatrix></filter>
+    <filter id="goo-md" x="-10%" y="-60%" width="120%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="4"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"></feColorMatrix></filter>
     <filter id="goo-sm" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="0.5"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 12 -4.5"></feColorMatrix></filter>
   </defs>
 </svg>
@@ -805,6 +855,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
   /* ---------- preferences ---------- */
   var setPlay = $('#set-play'), setMotion = $('#set-motion'), setReading = $('#set-reading');
+  $$('.switch input[type="checkbox"]').forEach(function (i) { i.addEventListener('change', function () { i.classList.add('touched'); }); });
   setPlay.addEventListener('change', function () { if (setPlay.checked) delete root.dataset.play; else root.dataset.play = 'off'; });
   setMotion.addEventListener('change', function () { if (setMotion.checked) root.dataset.motion = 'reduce'; else delete root.dataset.motion; drawCurves(); });
   setReading.addEventListener('change', function () {
@@ -1001,6 +1052,12 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     $$('main section').forEach(function (s) { io.observe(s); });
   }
 
+  function nudge() {
+    if (reduced() || coreOpen()) return;
+    core.classList.remove('nudge'); void core.offsetWidth; core.classList.add('nudge');
+  }
+  core.addEventListener('pointerenter', nudge);
+
   /* toasts: beads that leave the core, queue up to four deep, and drop back into it */
   var toastHost = $('#toasts'), toastLive = $('#toast-live'), live = $('#live'), toastQ = [], toastTimer, toastPaused = false;
   function layoutToasts() {
@@ -1024,7 +1081,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
         { transform: 'translate(-6px, 30px) scale(0.8, 1.35)', borderRadius: '50% 50% 50% 50% / 62% 62% 38% 38%', offset: 0.6 },
         { transform: 'translate(-6px, 74px) scale(0.9, 0.9)', borderRadius: '50%' }
       ], { duration: 340, easing: 'cubic-bezier(.55, 0, .9, .45)', fill: 'forwards' });
-      fall.onfinish = function () { t.remove(); };
+      fall.onfinish = function () { t.remove(); nudge(); };
     };
     layoutToasts();
   }
@@ -1037,7 +1094,20 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     t.addEventListener('pointerleave', function () { toastPaused = false; layoutToasts(); });
     toastHost.appendChild(t); toastQ.push(t);
     toastLive.textContent = text;
-    void t.offsetWidth; t.classList.remove('enter');
+    if (reduced()) { t.classList.remove('enter'); }
+    else {
+      /* as liquid: a bead rises out of the core, stretches, then widens into the pill */
+      var rest = 'translateY(calc(var(--i) * -10px)) scale(calc(1 - var(--i) * 0.05))';
+      var bead0 = { width: '44px', height: '44px', minHeight: '0', padding: '0', borderRadius: '50%' };
+      var rise = animate(t, [
+        Object.assign({ transform: 'translateY(72px) scale(0.6)' }, bead0),
+        Object.assign({ transform: 'translateY(-8px) scale(0.82, 1.3)', offset: 0.42 }, bead0),
+        Object.assign({ transform: rest, offset: 0.6 }, bead0),
+        { width: '100%', transform: rest }
+      ], { duration: 560, easing: 'cubic-bezier(.3, .7, .3, 1)' });
+      rise.onfinish = function () { t.classList.remove('enter'); layoutToasts(); };
+      nudge();
+    }
     while (toastQ.length > 4) dropFront();
     layoutToasts();
   }
@@ -1084,8 +1154,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   var pool = $('#pool'), poolOrigin = null;
   function poolFrames(card) {
     var a = card.getBoundingClientRect(), b = pool.getBoundingClientRect();
-    return [{ transform: 'translate(' + (a.left - b.left) + 'px,' + (a.top - b.top) + 'px) scale(' + (a.width / b.width) + ',' + (a.height / b.height) + ')', opacity: 0.6 },
-            { transform: 'none', opacity: 1 }];
+    var from = 'translate(' + (a.left - b.left) + 'px,' + (a.top - b.top) + 'px) scale(' + (a.width / b.width) + ',' + (a.height / b.height) + ')';
+    return [{ transform: from, opacity: 0.6, borderRadius: '10px' },
+            { opacity: 1, borderRadius: '34% 66% 58% 42% / 56% 40% 60% 44%', offset: 0.45 },
+            { transform: 'none', opacity: 1, borderRadius: '20px' }];
   }
   $$('.dropcard').forEach(function (card) {
     card.addEventListener('click', function () {
@@ -1100,7 +1172,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   function closePool() {
     if (!pool.open) return;
     if (reduced() || !poolOrigin) { pool.close(); return; }
-    var frames = poolFrames(poolOrigin).reverse();
+    var frames = poolFrames(poolOrigin).reverse(); frames[1].offset = 0.55;
     var an = animate(pool, frames, { duration: ms('--qs-dur-gather'), easing: tok('--qs-ease-gather') });
     an.onfinish = function () { pool.close(); };
   }
@@ -1245,6 +1317,35 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
       host.appendChild(el);
     });
   }
+  var seg = $('#speed-seg'), segInd = $('.seg-ind', seg), segAt = null;
+  function moveSeg(stretch) {
+    var lab = $('input:checked', seg).parentNode, x = lab.offsetLeft, w = lab.offsetWidth;
+    if (stretch && segAt && !reduced()) {
+      var l = Math.min(segAt.x, x), r = Math.max(segAt.x + segAt.w, x + w);
+      segInd.style.left = l + 'px'; segInd.style.width = (r - l) + 'px';
+      setTimeout(function () { segInd.style.left = x + 'px'; segInd.style.width = w + 'px'; }, 170);
+    } else {
+      segInd.style.transition = stretch ? '' : 'none';
+      segInd.style.left = x + 'px'; segInd.style.width = w + 'px';
+      void segInd.offsetWidth; segInd.style.transition = '';
+    }
+    segAt = { x: x, w: w };
+  }
+  seg.addEventListener('change', function () { moveSeg(true); });
+  window.addEventListener('resize', function () { moveSeg(false); });
+  moveSeg(false);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { moveSeg(false); });
+
+  var lprog = $('#lprog'), lprogV = 20;
+  $('#lprog-add').addEventListener('click', function () {
+    lprogV = lprogV >= 100 ? 0 : lprogV + 20;
+    lprog.style.setProperty('--p', lprogV / 100);
+    lprog.setAttribute('aria-valuenow', lprogV);
+    $('#lprog-val').textContent = lprogV + '%';
+    $('#lprog-add').textContent = lprogV >= 100 ? 'Reset' : 'Add 20%';
+    if (lprogV === 100) bead('Export ready');
+  });
+
   function speed() { var r = $('input[name="speed"]:checked'); return r ? Number(r.value) : 1; }
   function playCurve(el) {
     var dot = $('.dot', el), track = $('.track', el), travel = track.clientWidth - 20;

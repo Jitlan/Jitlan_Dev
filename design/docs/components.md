@@ -122,6 +122,13 @@ borders, 44px targets, a 3px focus ring offset 2px.
   carries the state, so there is no `aria-pressed`.
 - **Destructive follow-up:** plays only after the deletion has really happened, never in
   place of the confirmation, and with no bounce.
+- **Switch:** a real checkbox. The thumb is a bead that stretches across the track
+  before letting go of the side it came from.
+- **Segmented control:** real radio buttons. One ink bead sits behind the selected
+  option; on change it stretches to reach the new option, then releases the old one.
+- **Progress:** a real `role="progressbar"`. The fill is led by a round head that runs
+  ahead and pulls the fill after it, joined by a goo filter on a decorative layer.
+- **Press:** every button squashes under the press and springs back past its rest size.
 - **Field:** a visible `<label>`; hint text below in muted; errors in the professional
   voice below the field, linked with `aria-describedby`.
 - **Table:** scrolls inside its own box at narrow widths; numbers in mono with
