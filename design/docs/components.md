@@ -30,6 +30,9 @@ ships with a library's stock look.
 - **How it opens:** the puck itself grows into the menu on the spread curve, and the
   items arrive from the puck's corner, nearest first. (A liquid-body variant with
   fade-in items was tried on the kit and rejected: it read worse than the original.)
+- **Menu and close are two whole icons.** The toggle cross-fades between a three-line
+  menu icon and a full cross. It does not bend the three lines into a cross: that
+  morph renders differently between browsers and can come out as a partial cross.
 - **The toggle is the top layer.** Only the menu items are clipped to the body's
   rounded shape; the toggle and the count badge sit outside that clip so neither can
   be cut off, and the badge overhangs the puck's corner. Menu items pass underneath the
@@ -69,9 +72,11 @@ ships with a library's stock look.
   pulls in to a bead, stretches, and falls back into the core. The next one comes
   forward.
 - **Timing.** Each toast gets five seconds *as the front one*, not from when it was
-  sent. Hover or focus holds it; pressing it dismisses it.
-- **A11y:** the visual stack is hidden from assistive technology; each message is sent
-  once to a polite `role="status"` region when it is added. Never the only record of
+  sent. Hover or focus holds it. The front toast carries a close button on its right
+  edge; pressing it plays the same drop into the core, early.
+- **A11y:** each message is sent once to a polite `role="status"` region when it is
+  added. The close button is a real button named "Dismiss: " plus the message; toasts
+  waiting behind the front one are `inert`. Never the only record of
   an outcome: whatever it says is also visible in the page. Under reduced motion the
   front one fades instead of dropping.
 

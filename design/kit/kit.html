@@ -250,11 +250,12 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .core-toggle .disc { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: transparent; color: inherit;
   transition: width var(--qs-dur-settle) var(--qs-ease-settle), height var(--qs-dur-settle) var(--qs-ease-settle), background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease; }
 .core[data-open="true"] .core-toggle .disc { width: 44px; height: 44px; background: var(--qs-ink); color: var(--qs-card); }
-.core-toggle svg { width: 22px; height: 22px; }
-.core-toggle .bar { transition: transform var(--qs-dur-settle) var(--qs-ease-settle), opacity var(--qs-dur-fade) ease; transform-origin: 12px 12px; }
-.core[data-open="true"] .bar.b1 { transform: translateY(5px) rotate(45deg); }
-.core[data-open="true"] .bar.b2 { opacity: 0; }
-.core[data-open="true"] .bar.b3 { transform: translateY(-5px) rotate(-45deg); }
+.core-toggle .disc { position: relative; }
+.core-toggle svg { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px;
+  transition: opacity var(--qs-dur-fade) ease, transform var(--qs-dur-settle) var(--qs-ease-settle); }
+.core-toggle .ic-close { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+.core[data-open="true"] .core-toggle .ic-menu { opacity: 0; transform: rotate(90deg) scale(0.6); }
+.core[data-open="true"] .core-toggle .ic-close { opacity: 1; transform: none; }
 .core-menu { position: absolute; z-index: 1; left: 8px; top: 8px; width: 276px; max-width: calc(100vw - 48px); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; list-style: none; padding: 0; }
 .core-menu li { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.3);
   transition: transform var(--qs-dur-gather) var(--qs-ease-gather) var(--dc), opacity var(--qs-dur-fade) ease var(--dc); }
@@ -274,11 +275,19 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
   width: min(300px, calc(100vw - 32px)); }
 .toast { position: absolute; right: 0; bottom: 0; width: 100%; min-height: 44px; padding: 0.7rem 1rem; border-radius: 22px; overflow: hidden;
   background: var(--qs-ink); color: var(--qs-card); border: 1px solid var(--qs-edge); box-shadow: 0 4px 12px var(--qs-shadow);
-  font-size: 0.9375rem; font-weight: 600; line-height: 1.35; display: flex; align-items: center;
+  font-size: 0.9375rem; font-weight: 600; line-height: 1.35; display: flex; align-items: center; gap: 0.25rem; padding-right: 0.25rem;
   transform-origin: calc(100% - 28px) 100%; z-index: calc(4 - var(--i));
   transform: translateY(calc(var(--i) * -10px)) scale(calc(1 - var(--i) * 0.05));
   transition: transform var(--qs-dur-gather) var(--qs-ease-spread), opacity var(--qs-dur-fade) ease; }
-.toast.front { pointer-events: auto; cursor: pointer; }
+.toast.front { pointer-events: auto; }
+.toast .t { flex: 1; min-width: 0; }
+.toast .x { flex-shrink: 0; width: 44px; height: 44px; margin: -0.7rem 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; display: grid; place-items: center;
+  transition: opacity var(--qs-dur-fade) ease; }
+.toast .x span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in oklab, var(--qs-card) 18%, transparent); }
+.toast .x:hover span { background: color-mix(in oklab, var(--qs-card) 32%, transparent); }
+.toast .x svg { width: 14px; height: 14px; }
+.toast .x:focus-visible { outline-color: var(--qs-card); outline-offset: -4px; }
+.toast:not(.front) .x, .toast.dropping .x, .toast.enter .x { opacity: 0; }
 .toast:not(.front) { height: var(--front-h, 44px); }
 .toast .t { transition: opacity var(--qs-dur-fade) ease; }
 .toast:not(.front) .t, .toast.dropping .t { opacity: 0; }
@@ -596,7 +605,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <button class="btn" type="button" id="send-bead">Send a toast</button>
     <button class="btn" type="button" id="send-five">Send five</button>
   </div>
-  <p class="small muted" style="max-width:68ch">Toasts leave the core and stack: the front one is readable, up to three wait behind it. It never shows more than four. A fifth makes the front one pull in to a bead and drop back into the core. Each front toast stays five seconds; hover to hold it, press it to dismiss.</p>
+  <p class="small muted" style="max-width:68ch">Toasts leave the core and stack: the front one is readable, up to three wait behind it. It never shows more than four. A fifth makes the front one pull in to a bead and drop back into the core. Each front toast stays five seconds; hover to hold it. Its close button on the right sends it back into the core early, with the same drop.</p>
 
   <h3>Rail: the desktop form of the same core</h3>
   <div class="frame">
@@ -892,13 +901,14 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   </ul></div>
   <span class="core-badge" id="core-badge" aria-hidden="true" hidden></span>
   <button type="button" class="core-toggle" id="core-toggle" aria-expanded="false" aria-controls="core-menu" aria-label="Open menu">
-    <span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-      <path class="bar b1" d="M5 7H19"></path><path class="bar b2" d="M5 12H19"></path><path class="bar b3" d="M5 17H19"></path>
-    </svg></span>
+    <span class="disc">
+      <svg class="ic-menu" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 7H19M5 12H19M5 17H19"></path></svg>
+      <svg class="ic-close" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6L18 18M18 6L6 18"></path></svg>
+    </span>
   </button>
 </nav>
 <div class="spot" id="spot" aria-hidden="true" hidden><svg><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:3.5;--delay:260ms"></path></svg></div>
-<div class="toasts" id="toasts" aria-hidden="true"></div>
+<div class="toasts" id="toasts"></div>
 <div class="vh" role="status" id="toast-live"></div>
 
 <div class="tour-step glass" id="tour-step" popover="manual" role="dialog" aria-labelledby="ts-title" aria-describedby="ts-body" tabindex="-1">
@@ -1151,14 +1161,14 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   /* toasts: beads that leave the core, queue up to four deep, and drop back into it */
   var toastHost = $('#toasts'), toastLive = $('#toast-live'), live = $('#live'), toastQ = [], toastTimer, toastPaused = false;
   function layoutToasts() {
-    toastQ.forEach(function (t, i) { t.style.setProperty('--i', i); t.classList.toggle('front', i === 0); });
+    toastQ.forEach(function (t, i) { t.style.setProperty('--i', i); t.classList.toggle('front', i === 0); t.inert = i !== 0; });
     if (toastQ[0]) toastHost.style.setProperty('--front-h', toastQ[0].offsetHeight + 'px');
     clearTimeout(toastTimer);
     if (toastQ.length && !toastPaused) toastTimer = setTimeout(dropFront, 5000);
   }
   function dropFront() {
     var t = toastQ.shift(); if (!t) return;
-    t.classList.remove('front');
+    t.classList.remove('front'); t.inert = true;
     if (reduced()) { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 160); layoutToasts(); return; }
     /* as liquid: the text goes, the pill pulls in to a bead, stretches and falls into the core */
     var r = t.getBoundingClientRect();
@@ -1179,7 +1189,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     var t = document.createElement('div'); t.className = 'toast enter' + (fun ? ' fun' : '');
     var span = document.createElement('span'); span.className = 't'; span.textContent = text; t.appendChild(span);
     t.style.setProperty('--i', Math.min(toastQ.length, 3));
-    t.addEventListener('click', function () { if (t === toastQ[0]) dropFront(); });
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.setAttribute('aria-label', 'Dismiss: ' + text);
+    x.innerHTML = '<span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6L18 18M18 6L6 18"></path></svg></span>';
+    x.addEventListener('click', function () { if (t === toastQ[0]) dropFront(); });
+    t.appendChild(x);
     t.addEventListener('pointerenter', function () { toastPaused = true; clearTimeout(toastTimer); });
     t.addEventListener('pointerleave', function () { toastPaused = false; layoutToasts(); });
     toastHost.appendChild(t); toastQ.push(t);
