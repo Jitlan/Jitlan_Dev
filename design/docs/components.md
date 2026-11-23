@@ -30,7 +30,10 @@ ships with a library's stock look.
 - **How it opens:** the puck itself grows into the menu on the spread curve, and the
   items arrive from the puck's corner, nearest first. (A liquid-body variant with
   fade-in items was tried on the kit and rejected: it read worse than the original.)
-- **The toggle is the top layer.** Menu items pass underneath it, never over it. Open,
+- **The toggle is the top layer.** Only the menu items are clipped to the body's
+  rounded shape; the toggle and the count badge sit outside that clip so neither can
+  be cut off, and the badge overhangs the puck's corner. Menu items pass underneath the
+  toggle, never over it. Open,
   the cross sits on its own ink disc so it reads as a different kind of action from the
   navigation items around it.
 - **Desktop:** a rail, 56px ↔ 248px, icons always visible, labels arriving after the
@@ -168,7 +171,8 @@ borders, 44px targets, a 3px focus ring offset 2px.
 - **Segmented control:** real radio buttons. One ink bead sits behind the selected
   option; on change it stretches to reach the new option, then releases the old one.
 - **Progress:** a real `role="progressbar"`. The fill is led by a round head that runs
-  ahead and pulls the fill after it, joined by a goo filter on a decorative layer.
+  ahead, stretching as it goes, and pulls the fill after it. No filter: a goo filter on
+  a part that keeps moving left smears behind it in some browsers.
 - **Press:** every button squashes under the press and springs back past its rest size.
 - **Field:** a visible `<label>`; hint text below in muted; errors in the professional
   voice below the field, linked with `aria-describedby`.

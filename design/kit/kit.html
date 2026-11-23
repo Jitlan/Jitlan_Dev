@@ -232,9 +232,12 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .core { position: fixed; z-index: 50;
   right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   width: var(--qs-core-size); height: var(--qs-core-size); border-radius: var(--qs-radius-core);
-  background: var(--qs-ink); color: var(--qs-card); box-shadow: 0 6px 16px var(--qs-shadow); overflow: clip;
+  background: var(--qs-ink); color: var(--qs-card); box-shadow: 0 6px 16px var(--qs-shadow);
   transition: width var(--qs-dur-spread) var(--qs-ease-spread), height var(--qs-dur-spread) var(--qs-ease-spread),
     border-radius var(--qs-dur-spread) ease, background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease; }
+/* Only the menu items are clipped to the body's shape. The toggle and the count badge
+   are siblings of this clip, so nothing can cut them off. */
+.core-clip { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .core[data-open="true"] { width: 292px; height: 348px; max-width: calc(100vw - 32px); border-radius: var(--qs-radius-pool);
   background: var(--qs-card); color: var(--qs-ink); box-shadow: 0 0 0 1px var(--qs-edge), 0 6px 16px var(--qs-shadow); }
 @keyframes puck { 0% { transform: none; border-radius: 28px; } 30% { transform: scale(1.1, 0.9); border-radius: 30px 26px 33px 24px / 24px 33px 26px 30px; }
@@ -246,7 +249,7 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
   display: grid; place-items: center; }
 .core-toggle .disc { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: transparent; color: inherit;
   transition: width var(--qs-dur-settle) var(--qs-ease-settle), height var(--qs-dur-settle) var(--qs-ease-settle), background var(--qs-dur-fade) ease, color var(--qs-dur-fade) ease; }
-.core[data-open="true"] .core-toggle .disc { width: 40px; height: 40px; background: var(--qs-ink); color: var(--qs-card); }
+.core[data-open="true"] .core-toggle .disc { width: 44px; height: 44px; background: var(--qs-ink); color: var(--qs-card); }
 .core-toggle svg { width: 22px; height: 22px; }
 .core-toggle .bar { transition: transform var(--qs-dur-settle) var(--qs-ease-settle), opacity var(--qs-dur-fade) ease; transform-origin: 12px 12px; }
 .core[data-open="true"] .bar.b1 { transform: translateY(5px) rotate(45deg); }
@@ -338,8 +341,9 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .handoffs .card { gap: 0.625rem; }
 .handoffs .composer input { border-radius: 8px; }
 .handoffs .composer .btn { border-radius: 8px; }
-.core-badge { position: absolute; z-index: 4; top: 2px; right: 2px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--qs-highlighter); color: var(--qs-on-hi);
-  font: 700 0.75rem/20px var(--qs-voice-pro); text-align: center; pointer-events: none; transition: opacity var(--qs-dur-fade) ease, transform var(--qs-dur-settle) var(--qs-ease-spread); }
+.core-badge { position: absolute; z-index: 4; top: -6px; right: -6px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--qs-highlighter); color: var(--qs-on-hi);
+  box-shadow: 0 0 0 2px var(--qs-paper);
+  font: 700 0.75rem/22px var(--qs-voice-pro); text-align: center; pointer-events: none; transition: opacity var(--qs-dur-fade) ease, transform var(--qs-dur-settle) var(--qs-ease-spread); }
 .core[data-open="true"] .core-badge { opacity: 0; }
 .core-badge.bump { transform: scale(1.35); }
 
@@ -405,10 +409,10 @@ del { text-decoration-thickness: 0.1em; color: var(--qs-muted); } ins { text-dec
 
 .lprog { position: relative; flex: 1 1 240px; min-width: 0; height: 36px; }
 .lprog::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 12px; border-radius: 6px; background: var(--qs-card); border: 1px solid var(--qs-edge); }
-.lprog-goo { position: absolute; inset: 0; filter: url(#goo-md); }
+.lprog-liq { position: absolute; inset: 0; }
 .lp-fill, .lp-head { position: absolute; background: var(--qs-pen-a); }
-.lp-fill { left: 0; top: 12px; height: 12px; border-radius: 6px; width: calc((100% - 12px) * var(--p)); transition: width var(--qs-dur-spread) var(--qs-ease-settle) 60ms; }
-.lp-head { top: 6px; width: 24px; height: 24px; border-radius: 50%; left: calc((100% - 24px) * var(--p)); transition: left var(--qs-dur-spread) var(--qs-ease-spread); }
+.lp-fill { left: 0; top: 12px; height: 12px; border-radius: 6px; width: calc((100% - 12px) * var(--p) + 6px); transition: width var(--qs-dur-spread) var(--qs-ease-settle) 25ms; }
+.lp-head { top: 6px; width: 24px; height: 24px; border-radius: 12px; left: calc((100% - 24px) * var(--p)); transition: left var(--qs-dur-spread) var(--qs-ease-spread); }
 .where li { margin-bottom: 0.25rem; }
 
 /* ---------- empty state ---------- */
@@ -784,11 +788,11 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   <p class="small muted" style="max-width:68ch">Any button can take a follow-up: after the press it pulls in to an icon for what it just did, the icon makes one small movement, and the button comes back. Follow comes back as Unfollow. A destructive button plays its follow-up only once the deletion has really happened, never in place of a confirmation.</p>
   <h3>Progress</h3>
   <div class="row">
-    <div class="lprog" id="lprog" role="progressbar" aria-label="Export" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20" style="--p:0.2"><div class="lprog-goo" aria-hidden="true"><span class="lp-fill"></span><span class="lp-head"></span></div></div>
+    <div class="lprog" id="lprog" role="progressbar" aria-label="Export" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20" style="--p:0.2"><div class="lprog-liq" aria-hidden="true"><span class="lp-fill"></span><span class="lp-head"></span></div></div>
     <span class="mono" id="lprog-val">20%</span>
     <button class="btn" type="button" id="lprog-add">Add 20%</button>
   </div>
-  <p class="small muted" style="max-width:68ch">The fill is led by a bead that runs ahead and pulls the rest after it.</p>
+  <p class="small muted" style="max-width:68ch">The fill is led by a bead that runs ahead, stretching as it goes, and pulls the rest after it.</p>
   <div class="grid">
     <div class="field"><label for="f-name">Trip name</label><input type="text" id="f-name" value="Lisbon, March"><span class="hint">Shown on the shared page.</span></div>
     <div class="field"><label for="f-mail">Share with</label><input type="email" id="f-mail" value="maya@" aria-invalid="true" aria-describedby="f-mail-err"><span class="err" id="f-mail-err">That address is missing a domain. Add the part after the @.</span></div>
@@ -874,11 +878,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <filter id="goo-ui" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="9"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"></feColorMatrix></filter>
     <filter id="goo-text" x="-20%" y="-40%" width="140%" height="180%" color-interpolation-filters="sRGB"><feGaussianBlur id="goo-text-blur" in="SourceGraphic" stdDeviation="0"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10"></feColorMatrix></filter>
     <filter id="goo-send" x="-20%" y="-60%" width="140%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur id="goo-send-blur" in="SourceGraphic" stdDeviation="0"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"></feColorMatrix></filter>
-    <filter id="goo-md" x="-10%" y="-60%" width="120%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="4"></feGaussianBlur><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"></feColorMatrix></filter>
-  </defs>
+    </defs>
 </svg>
 <nav class="core" id="core-nav" data-open="false" aria-label="Kit sections">
-  <ul class="core-menu" id="core-menu">
+  <div class="core-clip"><ul class="core-menu" id="core-menu">
     <li class="wide"><button type="button" class="tourlink" id="core-tour">Take the tour</button></li>
     <li><a href="#voices">Voices</a></li><li><a href="#emphasis">Emphasis</a></li>
     <li><a href="#colour">Colour</a></li><li><a href="#materials">Materials</a></li>
@@ -886,7 +889,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <li><a href="#ceremony">Ceremony</a></li><li><a href="#motion">Motion</a></li>
     <li><a href="#controls">Controls</a></li><li><a href="#tour">Tour</a></li>
     <li><a href="#eggs">Eggs</a></li>
-  </ul>
+  </ul></div>
   <span class="core-badge" id="core-badge" aria-hidden="true" hidden></span>
   <button type="button" class="core-toggle" id="core-toggle" aria-expanded="false" aria-controls="core-menu" aria-label="Open menu">
     <span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
@@ -1620,6 +1623,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   $('#lprog-add').addEventListener('click', function () {
     lprogV = lprogV >= 100 ? 0 : lprogV + 20;
     lprog.style.setProperty('--p', lprogV / 100);
+    if (!reduced()) {   /* the head stretches along its direction of travel, then recovers */
+      animate($('.lp-head', lprog), [{ transform: 'scale(1, 1)' }, { transform: 'scale(1.45, 0.82)', offset: 0.35 }, { transform: 'scale(0.92, 1.08)', offset: 0.75 }, { transform: 'scale(1, 1)' }],
+        { duration: ms('--qs-dur-spread') + 80, easing: 'ease-out' });
+    }
     lprog.setAttribute('aria-valuenow', lprogV);
     $('#lprog-val').textContent = lprogV + '%';
     $('#lprog-add').textContent = lprogV >= 100 ? 'Reset' : 'Add 20%';

@@ -39,8 +39,10 @@ core. Six moves cover almost everything, and only the melt needs a filter:
 | **Soft in flight** | Corners go organic and uneven while a body is changing size, and firm up at rest. | Card to dialog, the puck wobble |
 
 A goo filter (blur plus alpha threshold) adds the visible neck between two bodies. Use
-it only on a decorative layer that holds no text and no focus ring: a progress fill and
-its head, a paw's toes, the ceremony word while it forms, the liquid-layer demo.
+it only on a decorative layer that holds no text and no focus ring, and only on
+things that are still or that exist for a moment: the ceremony word while it forms,
+typed text while it melts, the liquid-layer demo. Do not put it on a part that keeps
+moving, such as a progress bar: some browsers leave smears behind it.
 
 Volume does not have to be realistic. A bead may become a panel.
 
