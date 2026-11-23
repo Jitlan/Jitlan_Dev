@@ -115,8 +115,10 @@ borders, 44px targets, a 3px focus ring offset 2px.
 - **Follow-up** (optional, any button): after the press the button pulls in to a 44px
   disc showing an icon for what it just did, the icon makes one small movement (a tick
   draws, an arrow lifts, a lid tips, a paw takes two steps), and the button comes back.
-  Declared with `data-after="check|share|trash|paw"`. Icons that bud out of a body (the
-  paw's toes) use the small goo filter. Under reduced motion the label simply changes.
+  Declared with `data-after="check|share|trash|paw"`. The icon's
+  movement is driven from script with the Web Animations API, with no SVG filter and
+  no CSS keyframes inside the SVG, because engines differ on both. Under reduced motion
+  nothing pulls in or moves, but the icon still cross-fades in place of the label.
 - **Toggle with a follow-up** (Follow → Unfollow): the button comes back carrying the
   opposite action as its label, and a polite live region says what happened. The label
   carries the state, so there is no `aria-pressed`.
