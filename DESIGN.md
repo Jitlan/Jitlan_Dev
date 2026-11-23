@@ -414,7 +414,7 @@ notes are in `@design/docs/components.md`.
 | **Drop** | Core or another drop | A card, popover or chip. States its origin with `data-origin`. |
 | **Pool / sheet** | Core or a drop | Several drops merged into one surface: a dialog, drawer, detail view. A real `<dialog>`. |
 | **Bead** | Core | A toast or status. Leaves the core, rests, rejoins it. Stacks up to four (one readable, three behind); a fifth makes the front one drop back into the core as liquid. Polite live region. |
-| **Hand-off** | An input | What the user typed becomes the item: the words melt into a bead, the bead travels, and it widens into the new bubble or row with the text on it. |
+| **Hand-off** | An input | What the user typed becomes the item: the words melt into a bead, the bead travels, and it widens into the new bubble, row or chip with the text on it. The same bead carries a checked-off task to Done, and a followed item to the core, which keeps count. |
 | **Mark** | Ink | Circle, tick, cross, strike-and-insert, swipe, margin note. One of each kind per card at most. |
 | **Ceremony** | The screen's headline value | Fancy voice plus one mark. The word separates out of a bead of liquid. Once per screen. |
 | **Tour step** | Core | A drop with a title, one sentence, "Step n of m", Back, Next, Close. `role="dialog"`. Never covers its target. The rest of the page fades back and a pen loop is drawn round the target. |

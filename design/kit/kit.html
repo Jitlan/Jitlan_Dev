@@ -325,6 +325,24 @@ header.top { display: flex; flex-direction: column; gap: 1.25rem; }
 .fly .flytext { position: absolute; left: 0; top: 0; height: 100%; display: flex; align-items: center; white-space: nowrap; color: var(--qs-ink); }
 .flybead { position: fixed; z-index: 70; pointer-events: none; left: 0; top: 0; background: var(--qs-ink); border-radius: 17px; transform-origin: 0 0; }
 
+.rows, .chips, .todo { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.375rem; }
+.rows, .todo { flex-direction: column; }
+.rows li { padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--qs-outline); background: var(--qs-paper); font-size: 0.9375rem; }
+.chips { flex-wrap: wrap; min-height: 36px; }
+.chips li { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0 0.25rem 0 0.75rem; min-height: 36px; border-radius: 18px; background: var(--qs-ink); color: var(--qs-card); font-size: 0.875rem; font-weight: 600; }
+.chips button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: inherit; display: grid; place-items: center; font-size: 1.125rem; line-height: 1; }
+.todo li { border-radius: 8px; }
+.todo label { display: flex; align-items: center; gap: 0.625rem; min-height: 40px; padding: 0 0.5rem; font-size: 0.9375rem; cursor: pointer; }
+.todo input { width: 1.125rem; height: 1.125rem; accent-color: var(--qs-pen-a); margin: 0; flex-shrink: 0; }
+#done-list label { color: var(--qs-muted); text-decoration: line-through; }
+.handoffs .card { gap: 0.625rem; }
+.handoffs .composer input { border-radius: 8px; }
+.handoffs .composer .btn { border-radius: 8px; }
+.core-badge { position: absolute; z-index: 4; top: 2px; right: 2px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--qs-highlighter); color: var(--qs-on-hi);
+  font: 700 0.75rem/20px var(--qs-voice-pro); text-align: center; pointer-events: none; transition: opacity var(--qs-dur-fade) ease, transform var(--qs-dur-settle) var(--qs-ease-spread); }
+.core[data-open="true"] .core-badge { opacity: 0; }
+.core-badge.bump { transform: scale(1.35); }
+
 /* ---------- drops and pool ---------- */
 .drops { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
 .dropcard { text-align: left; border-radius: var(--qs-radius-card); padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
@@ -621,7 +639,8 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <li><strong>Switches and the speed control</strong> stretch a bead across to the new position before letting go of the old one.</li>
     <li><strong>Progress</strong> is led by a bead that pulls the fill after it.</li>
     <li><strong>Cards opening into a dialog</strong> go soft at the corners in flight and firm up on arrival.</li>
-    <li><strong>A sent message</strong> melts out of the field, travels as a bead and widens into its bubble.</li>
+    <li><strong>A sent message, a new list item, a tag, a checked-off task</strong> each travel to where they belong as a bead and widen into the finished thing.</li>
+    <li><strong>Follow</strong> sends a bead to the puck, which keeps count.</li>
     <li><strong>The ceremony</strong> word separates out of a bead of ink.</li>
   </ul>
 
@@ -637,6 +656,45 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
       <input type="text" id="chat-input" value="Sending the full breakdown now" enterkeyhint="send">
       <button class="btn primary" type="submit" id="chat-send">Send</button>
     </form>
+  </div>
+
+  <h3>The same hand-off on other controls</h3>
+  <p class="small muted" style="max-width:68ch">Wherever acting on one thing produces something somewhere else, a bead carries it there. Add to a list, turn a word into a tag, check a task off into Done, or follow something and watch it land on the core.</p>
+  <div class="grid handoffs">
+    <div class="card solid resting">
+      <h3>Add to a list</h3>
+      <ul class="rows" id="pack-list"><li>Passport</li><li>Charger</li></ul>
+      <form class="composer" id="pack-form" autocomplete="off">
+        <label class="vh" for="pack-input">Item to pack</label>
+        <input type="text" id="pack-input" value="Sunscreen">
+        <button class="btn primary" type="submit">Add</button>
+      </form>
+    </div>
+    <div class="card solid resting">
+      <h3>Tags</h3>
+      <ul class="chips" id="chips"><li><span>food</span><button type="button" aria-label="Remove food">&times;</button></li><li><span>flights</span><button type="button" aria-label="Remove flights">&times;</button></li></ul>
+      <form class="composer" id="tag-form" autocomplete="off">
+        <label class="vh" for="tag-input">New tag</label>
+        <input type="text" id="tag-input" value="transport">
+        <button class="btn primary" type="submit">Tag</button>
+      </form>
+      <p class="small muted">Remove a tag and it pulls in to a bead and drops away.</p>
+    </div>
+    <div class="card solid resting">
+      <h3>Check off</h3>
+      <ul class="todo" id="todo-list">
+        <li><label><input type="checkbox"> <span>Book flights</span></label></li>
+        <li><label><input type="checkbox"> <span>Reserve the hotel</span></label></li>
+        <li><label><input type="checkbox"> <span>Share the budget</span></label></li>
+      </ul>
+      <p class="lab muted">Done</p>
+      <ul class="todo" id="done-list"></ul>
+    </div>
+    <div class="card solid resting">
+      <h3>A button whose result lives on the core</h3>
+      <p class="small">Follow and the item travels to the puck, which keeps count. Unfollow and it comes back.</p>
+      <div class="row"><button class="btn primary" type="button" id="follow2" data-after="paw"><span class="lbl">Follow</span></button></div>
+    </div>
   </div>
 
   <h3>Drop to pool</h3>
@@ -829,6 +887,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <li><a href="#controls">Controls</a></li><li><a href="#tour">Tour</a></li>
     <li><a href="#eggs">Eggs</a></li>
   </ul>
+  <span class="core-badge" id="core-badge" aria-hidden="true" hidden></span>
   <button type="button" class="core-toggle" id="core-toggle" aria-expanded="false" aria-controls="core-menu" aria-label="Open menu">
     <span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
       <path class="bar b1" d="M5 7H19"></path><path class="bar b2" d="M5 12H19"></path><path class="bar b3" d="M5 17H19"></path>
@@ -1173,76 +1232,168 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     else { bead(['ow.', 'still mercury.', 'that tickles'][Math.floor(Math.random() * 3)], true); }
   });
 
-  /* hand-off: the typed text becomes the message. The real bubble is added to the thread
-     straight away (hidden), so assistive technology and the layout have it from the
-     start; the liquid is a decorative element flown over the top of it. */
+  /* hand-off: something made in one place becomes an item in another, carried by a bead.
+     The real destination element is added straight away (hidden), so assistive
+     technology and the layout have it from the start; the liquid is a decorative
+     element flown over the top of it. Three parts: melt (text into a bead), flyBead
+     (travel, then widen into the destination or be absorbed by it), reveal. */
   var thread = $('#thread'), chatInput = $('#chat-input'), sendBlur = $('#goo-send-blur'), sending = 0;
-  var REPLIES = ['Got it, thanks.', 'Perfect. Flights were the big one?', 'Nice. Pastel de nata on me.', 'Received.'], replyI = 0;
-  function addMsg(text, who) {
-    var li = document.createElement('li'); li.className = 'msg ' + who;
-    var b = document.createElement('span'); b.className = 'bub'; b.textContent = text;
-    li.appendChild(b); thread.appendChild(li); thread.scrollTop = thread.scrollHeight;
-    return b;
-  }
   function popIn(b) {
     if (reduced()) { animate(b, [{ opacity: 0 }, { opacity: 1 }], { duration: 150 }); return; }
     animate(b, [{ transform: 'scale(0.15)', borderRadius: '50%', opacity: 0.4 }, { transform: 'scale(1.07, 0.93)', opacity: 1, offset: 0.6 }, { transform: 'none' }],
       { duration: 420, easing: 'cubic-bezier(.3, .7, .3, 1)' });
   }
-  function reply() { setTimeout(function () { popIn(addMsg(REPLIES[replyI++ % REPLIES.length], 'them')); }, 650); }
-  function sendMessage(text) {
-    var bub = addMsg(text, 'me');
-    if (reduced()) { popIn(bub); reply(); return; }
-    bub.style.visibility = 'hidden';
-    var ir = chatInput.getBoundingClientRect(), cs = getComputedStyle(chatInput), pad = parseFloat(cs.paddingLeft) || 0;
+  function reveal(el) {
+    el.style.visibility = '';
+    animate(el, [{ transform: 'scale(1.06, 0.92)' }, { transform: 'none' }], { duration: ms('--qs-dur-settle'), easing: tok('--qs-ease-spread') });
+  }
+  /* the words in a field blur into a bead that swells underneath them */
+  function melt(input, text, then) {
+    var ir = input.getBoundingClientRect(), cs = getComputedStyle(input), pad = parseFloat(cs.paddingLeft) || 0;
     var fly = document.createElement('div'); fly.className = 'fly'; fly.setAttribute('aria-hidden', 'true');
     fly.style.left = ir.left + 'px'; fly.style.top = ir.top + 'px'; fly.style.width = ir.width + 'px'; fly.style.height = ir.height + 'px';
     var blob = document.createElement('span'); blob.className = 'flyblob';
     var ghost = document.createElement('span'); ghost.className = 'flytext'; ghost.textContent = text;
     ghost.style.font = cs.font; ghost.style.paddingLeft = (pad + 1) + 'px';
     fly.appendChild(blob); fly.appendChild(ghost); document.body.appendChild(fly);
-    var textW = Math.min(ghost.getBoundingClientRect().width + 8, ir.width - 12), run = ++sending, MELT = 300;
+    var textW = Math.min(ghost.getBoundingClientRect().width + 8, ir.width - 12), run = ++sending, MELT = 300, t0 = null;
     fly.style.filter = 'url(#goo-send)';
-    /* 1. melt: the words blur into the bead as it swells underneath them */
     animate(blob, [{ width: '34px', transform: 'scale(0)' }, { width: textW + 'px', transform: 'scale(1)' }], { duration: MELT, easing: 'cubic-bezier(.3, .7, .3, 1)', fill: 'forwards' });
     animate(ghost, [{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], { duration: MELT, fill: 'forwards' });
-    var t0 = null;
     (function frame(now) {
       if (t0 === null) t0 = now;
       var k = Math.min(1, (now - t0) / MELT);
       if (run === sending) sendBlur.setAttribute('stdDeviation', (7 * k).toFixed(2));
       if (k < 1) { requestAnimationFrame(frame); return; }
-      /* 2. travel: one bead of ink, stretched along the way, to where the bubble is */
-      var from = blob.getBoundingClientRect(), to = bub.getBoundingClientRect();
+      var from = blob.getBoundingClientRect();
       fly.remove(); if (run === sending) sendBlur.setAttribute('stdDeviation', '0');
-      var bead = document.createElement('div'); bead.className = 'flybead'; bead.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(bead);
-      var at = function (x, y, w, h, extra) { return Object.assign({ transform: 'translate(' + x + 'px,' + y + 'px)', width: w + 'px', height: h + 'px' }, extra || {}); };
-      var midX = from.left + (to.right - 34 - from.left) * 0.55, midY = from.top + (to.top - from.top) * 0.55;
-      var fall = animate(bead, [
-        at(from.left, from.top, from.width, from.height, { borderRadius: '17px' }),
-        at(from.left, from.top, 34, 34, { borderRadius: '17px', offset: 0.22 }),
-        at(midX + 4, midY - 6, 26, 44, { borderRadius: '50% 50% 50% 50% / 40% 40% 60% 60%', offset: 0.55 }),
-        at(to.right - 34, to.bottom - 34, 34, 34, { borderRadius: '17px', offset: 0.78 }),
-        /* 3. widen: the bead spreads into the bubble's own shape */
-        at(to.left, to.top, to.width, to.height, { borderRadius: '18px 18px 6px 18px' })
-      ], { duration: 720, easing: 'cubic-bezier(.4, 0, .3, 1)', fill: 'forwards' });
-      fall.onfinish = function () {
-        bub.style.visibility = '';
-        animate(bub, [{ transform: 'scale(1.06, 0.92)' }, { transform: 'none' }], { duration: ms('--qs-dur-settle'), easing: tok('--qs-ease-spread') });
-        bead.remove(); reply();
-      };
+      then(from);
     })(performance.now());
   }
-  $('#composer').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var text = chatInput.value.trim(); if (!text) return;
-    chatInput.value = '';
-    sendMessage(text);
+  /* one bead of ink: pulls in, stretches along the way, then widens into the destination
+     (o.radius) or is absorbed by it (o.absorb) */
+  function flyBead(from, to, o) {
+    var bead = document.createElement('div'); bead.className = 'flybead'; bead.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(bead);
+    var at = function (x, y, w, h, extra) { return Object.assign({ transform: 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)', width: w.toFixed(1) + 'px', height: h.toFixed(1) + 'px' }, extra || {}); };
+    var ex = o.absorb ? to.left + to.width / 2 - 17 : (o.alignRight ? to.right - 34 : to.left), ey = o.absorb ? to.top + to.height / 2 - 17 : to.bottom - 34;
+    var midX = from.left + (ex - from.left) * 0.55, midY = from.top + (ey - from.top) * 0.55;
+    var fall = animate(bead, [
+      at(from.left, from.top, from.width, from.height, { borderRadius: '17px' }),
+      at(from.left, from.top + (from.height - 34) / 2, 34, 34, { borderRadius: '17px', offset: 0.22 }),
+      at(midX + 4, midY - 6, 26, 44, { borderRadius: '50% 50% 50% 50% / 40% 40% 60% 60%', offset: 0.55 }),
+      at(ex, ey, 34, 34, { borderRadius: '17px', offset: 0.78 }),
+      o.absorb ? at(ex + 9, ey + 9, 16, 16, { borderRadius: '8px' }) : at(to.left, to.top, to.width, to.height, { borderRadius: o.radius || '8px' })
+    ], { duration: 720, easing: 'cubic-bezier(.4, 0, .3, 1)', fill: 'forwards' });
+    fall.onfinish = function () {
+      if (o.done) o.done();
+      var out = animate(bead, [{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' });
+      out.onfinish = function () { bead.remove(); };
+    };
+  }
+  /* text typed in a field becomes a new element somewhere else */
+  function carryText(input, text, el, o) {
+    if (reduced()) { popIn(el); if (o.done) o.done(); return; }
+    el.style.visibility = 'hidden';
+    melt(input, text, function (from) {
+      flyBead(from, el.getBoundingClientRect(), { radius: o.radius, alignRight: o.alignRight, done: function () { reveal(el); if (o.done) o.done(); } });
+    });
+  }
+  /* an existing element moves to a new home */
+  function carryEl(fromRect, el, o) {
+    if (reduced()) { popIn(el); if (o.done) o.done(); return; }
+    el.style.visibility = 'hidden';
+    flyBead(fromRect, el.getBoundingClientRect(), { radius: o.radius, done: function () { reveal(el); if (o.done) o.done(); } });
+  }
+  function make(tag, text) { var e = document.createElement(tag); if (text != null) e.textContent = text; return e; }
+  function onSubmit(formSel, inputSel, fn) {
+    $(formSel).addEventListener('submit', function (e) {
+      e.preventDefault();
+      var input = $(inputSel), text = input.value.trim(); if (!text) return;
+      input.value = ''; fn(input, text);
+    });
+  }
+
+  /* chat */
+  var REPLIES = ['Got it, thanks.', 'Perfect. Flights were the big one?', 'Nice. Pastel de nata on me.', 'Received.'], replyI = 0;
+  function addMsg(text, who) {
+    var li = make('li'); li.className = 'msg ' + who;
+    var b = make('span', text); b.className = 'bub';
+    li.appendChild(b); thread.appendChild(li); thread.scrollTop = thread.scrollHeight;
+    return b;
+  }
+  onSubmit('#composer', '#chat-input', function (input, text) {
+    carryText(input, text, addMsg(text, 'me'), { radius: '18px 18px 6px 18px', alignRight: true,
+      done: function () { setTimeout(function () { popIn(addMsg(REPLIES[replyI++ % REPLIES.length], 'them')); }, 650); } });
   });
   thread.scrollTop = thread.scrollHeight;
 
-  /* drop to pool */
+  /* add to a list */
+  onSubmit('#pack-form', '#pack-input', function (input, text) {
+    var li = make('li', text); $('#pack-list').appendChild(li);
+    live.textContent = 'Added ' + text;
+    carryText(input, text, li, { radius: '8px' });
+  });
+
+  /* tags: a word becomes a chip; removing one pulls it in to a bead and drops it */
+  function chip(text) {
+    var li = make('li'), x = make('button', '×');
+    x.type = 'button'; x.setAttribute('aria-label', 'Remove ' + text);
+    li.appendChild(make('span', text)); li.appendChild(x);
+    return li;
+  }
+  onSubmit('#tag-form', '#tag-input', function (input, text) {
+    var li = chip(text); $('#chips').appendChild(li);
+    live.textContent = 'Tagged ' + text;
+    carryText(input, text, li, { radius: '18px' });
+  });
+  $('#chips').addEventListener('click', function (e) {
+    var x = e.target.closest('button'); if (!x) return;
+    var li = x.parentNode, name = $('span', li).textContent;
+    live.textContent = 'Removed ' + name;
+    if (reduced()) { li.remove(); return; }
+    var r = li.getBoundingClientRect();
+    li.style.visibility = 'hidden';
+    var bead = make('div'); bead.className = 'flybead'; bead.setAttribute('aria-hidden', 'true'); document.body.appendChild(bead);
+    var t = function (x0, y0) { return 'translate(' + x0.toFixed(1) + 'px,' + y0.toFixed(1) + 'px)'; };
+    var drop = animate(bead, [
+      { transform: t(r.left, r.top), width: r.width + 'px', height: r.height + 'px', borderRadius: '18px', opacity: 1 },
+      { transform: t(r.left + r.width / 2 - 14, r.top + 4), width: '28px', height: '28px', borderRadius: '14px', opacity: 1, offset: 0.35 },
+      { transform: t(r.left + r.width / 2 - 10, r.top + 26), width: '20px', height: '34px', borderRadius: '50% 50% 50% 50% / 40% 40% 60% 60%', opacity: 1, offset: 0.7 },
+      { transform: t(r.left + r.width / 2 - 8, r.top + 60), width: '16px', height: '16px', borderRadius: '8px', opacity: 0 }
+    ], { duration: 460, easing: 'cubic-bezier(.5, 0, .9, .5)', fill: 'forwards' });
+    drop.onfinish = function () { bead.remove(); li.remove(); };
+  });
+
+  /* check off: a task travels to Done, and back if it is unchecked there */
+  function moveTask(e) {
+    var box = e.target; if (box.type !== 'checkbox') return;
+    var li = box.closest('li'), dest = box.checked ? $('#done-list') : $('#todo-list'), from = li.getBoundingClientRect();
+    dest.appendChild(li);
+    live.textContent = $('span', li).textContent + (box.checked ? ' done' : ' not done');
+    carryEl(from, li, { radius: '8px', done: function () { box.focus({ preventScroll: true }); } });
+  }
+  $('#todo-list').addEventListener('change', moveTask);
+  $('#done-list').addEventListener('change', moveTask);
+
+  /* a button whose result lives on the core: the item travels to the puck, which keeps count */
+  var badge = $('#core-badge'), tracked = 0;
+  function setTracked(n) {
+    tracked = Math.max(0, n);
+    badge.hidden = tracked === 0; badge.textContent = tracked;
+    if (!coreOpen()) toggle.setAttribute('aria-label', 'Open menu' + (tracked ? ', ' + tracked + ' followed' : ''));
+    badge.classList.add('bump'); setTimeout(function () { badge.classList.remove('bump'); }, 180);
+    nudge();
+  }
+  function toCore(btn, adding) {
+    if (reduced()) { setTracked(tracked + (adding ? 1 : -1)); return; }
+    var b = btn.getBoundingClientRect(), c = toggle.getBoundingClientRect();
+    var small = function (r) { return { left: r.left + r.width / 2 - 17, top: r.top + r.height / 2 - 17, width: 34, height: 34, right: r.left + r.width / 2 + 17, bottom: r.top + r.height / 2 + 17 }; };
+    if (adding) flyBead(small(b), c, { absorb: true, done: function () { setTracked(tracked + 1); } });
+    else { setTracked(tracked - 1); flyBead(small(c), b, { absorb: true }); }
+  }
+
+  /* drop to pool */  /* drop to pool */
   var POOL = {
     bead: ['Bead', 'The core. It leaves, rests nearby, and rejoins it.', 'Ink or metal.', 'One short line in the professional voice. Never the only record of an outcome.'],
     step: ['Tour step', 'The core. It travels to its target and gathers back when the tour ends.', 'Glass or solid, with an edge border.', 'A bold title, one sentence, and where you are: step 2 of 4.'],
@@ -1394,9 +1545,9 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   }
   $$('[data-after]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (btn.id === 'follow') {
+      if (btn.id === 'follow' || btn.id === 'follow2') {
         var on = $('.lbl', btn).textContent === 'Follow';
-        followUp(btn, on ? 'Unfollow' : 'Follow', function () { live.textContent = on ? 'Following. The button now says Unfollow.' : 'No longer following.'; });
+        followUp(btn, on ? 'Unfollow' : 'Follow', function () { live.textContent = on ? 'Following. The button now says Unfollow.' : 'No longer following.'; toCore(btn, on); });
       } else if (btn.id === 'sample-save') {
         followUp(btn, null, function () { bead('Trip saved'); bounce($('#sample-aside')); });
       } else {

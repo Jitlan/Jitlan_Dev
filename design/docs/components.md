@@ -13,8 +13,9 @@ ships with a library's stock look.
 - **Is:** the one element the screen belongs to. A real `<button>` inside a `<nav>` or
   `<search>` landmark.
 - **Made of:** ink when closed, solid or glass when open. 56px, radius 28px.
-- **States:** closed, open, busy (a metal bead circulates its edge), has-news (a bead
-  sits on it).
+- **States:** closed, open, busy (a metal bead circulates its edge), has-news (a small
+  highlighter badge with a count; things handed off to the core land here, and the
+  count is also in the toggle's accessible name).
 - **A11y:** `aria-expanded`, `aria-controls`; an accessible name that changes with
   state ("Open menu" / "Close menu"); early in the DOM order; one documented shortcut.
   Never fully covers a focused element (WCAG 2.4.11).
@@ -106,9 +107,22 @@ as one body. The model case is sending a message:
   The typed text also fades, so the hand-off still reads if a browser does not render
   the filter. Travel and widen use no filter.
 - **Reduced motion:** the bubble fades in where it belongs. Nothing travels.
-- **Also for:** adding an item to a list from an "add" field, dropping a file into a
-  queue, saving a draft into a folder. Not for every form submit: use it where the
-  thing typed visibly becomes the thing shown.
+- **The same hand-off on other controls** (all on the kit page):
+
+  | Control | From | To | Notes |
+  |---|---|---|---|
+  | Add to a list | The add field | The new row | Same melt, travel, widen as a message |
+  | Tags | The tag field | A new chip | Removing a chip is the reverse without a destination: it pulls in to a bead and drops away |
+  | Check off | The task's row | The Done list | No melt; the row itself pulls in to a bead. Unchecking sends it back. Focus follows the checkbox |
+  | A button whose result lives elsewhere | The button | The core | The bead is absorbed by the puck, which shows a count. Undoing sends a bead back to the button |
+
+- **Three parts, reusable:** *melt* (text in a field into a bead), *fly* (pull in,
+  stretch, travel, then either widen into the destination or be absorbed by it), and
+  *reveal* (the real element appears with a small squash). A control uses whichever
+  parts apply.
+- **When to use it:** wherever acting on one thing visibly produces or moves something
+  somewhere else on the same screen. Not for a submit whose result is on another page,
+  and not for anything that happens many times a minute.
 
 ## Ceremony
 
