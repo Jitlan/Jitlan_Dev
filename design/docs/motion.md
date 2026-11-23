@@ -27,7 +27,7 @@ deliberate exception and is allowed once per screen.
 ## Liquid character
 
 Liquid is how spatial motion looks by default, not a special effect reserved for the
-core. Five moves cover almost everything, and none of them needs a filter:
+core. Six moves cover almost everything, and only the melt needs a filter:
 
 | Move | What happens | Used by |
 |---|---|---|
@@ -35,6 +35,7 @@ core. Five moves cover almost everything, and none of them needs a filter:
 | **Stretch** | It elongates in the direction of travel and recovers on arrival. | A falling toast, a rising bead |
 | **Squash** | It flattens under pressure and springs back past its rest size. | Button press, the puck when touched |
 | **Reach, then let go** | A sliding part grows to span both positions, then releases the old one. | Switch thumb, selected-option indicator, progress head |
+| **Melt and re-form** | Content dissolves into a bead where it was made and re-forms as the finished item where it belongs. | Sending a message, adding to a list |
 | **Soft in flight** | Corners go organic and uneven while a body is changing size, and firm up at rest. | Card to dialog, the puck wobble |
 
 A goo filter (blur plus alpha threshold) adds the visible neck between two bodies. Use

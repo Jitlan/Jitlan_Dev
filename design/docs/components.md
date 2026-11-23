@@ -85,6 +85,31 @@ text as well.
 | Tick / cross | A yes or no outcome | Pen A tick, pen B cross, plus the word |
 | Title swipe | Behind the screen title | One per screen |
 
+## Hand-off (composer to thread)
+
+When something the user made in one place becomes an item in another, it travels there
+as one body. The model case is sending a message:
+
+1. **Melt.** The words in the field blur into a bead of ink that swells underneath
+   them (about 300ms). The field is already empty and ready for the next message.
+2. **Travel.** The bead pulls in, stretches along its path, and lands where the new
+   bubble will be.
+3. **Widen.** The bead spreads into the bubble's own shape, the bubble settles with a
+   small squash, and the text is on it.
+
+- **Comes from:** the input. **Made of:** whatever the destination item is made of
+  (a sent bubble is ink).
+- **How it is built:** the real bubble is added to the thread immediately, hidden, so
+  layout and assistive technology have it from the start; the liquid is a decorative,
+  `aria-hidden` element flown over the top. The thread is a `role="log"`.
+- **Filter use:** the goo filter is on the melting ghost of the text only, for 300ms.
+  The typed text also fades, so the hand-off still reads if a browser does not render
+  the filter. Travel and widen use no filter.
+- **Reduced motion:** the bubble fades in where it belongs. Nothing travels.
+- **Also for:** adding an item to a list from an "add" field, dropping a file into a
+  queue, saving a draft into a folder. Not for every form submit: use it where the
+  thing typed visibly becomes the thing shown.
+
 ## Ceremony
 
 - **Is:** the screen's single fancy moment: the headline value in the fancy voice, plus
