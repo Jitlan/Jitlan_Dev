@@ -134,6 +134,13 @@ as one body. The model case is sending a message:
 
 ## Ceremony
 
+**Motif.** A ceremony may be revealed by a small object that suits the word: a ship
+sails across and "Shipped" rises out of its wake; a paw could walk in "Tracked"; a
+stamp could land "Approved". The motif crosses once, stays crisp (it sits outside any
+filter), and leaves. It is optional, it is the fun voice in picture form, and the same
+limits apply: once per screen, never in an error or a loss. With no motif, the word
+separates out of a plain bead.
+
 - **Is:** the screen's single fancy moment: the headline value in the fancy voice, plus
   one mark. The word spawns from liquid: a bead of ink and the letters share one goo
   filter, the bead draws back, and each letter separates from it in turn, left to

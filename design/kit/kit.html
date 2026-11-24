@@ -393,7 +393,14 @@ del { text-decoration-thickness: 0.1em; color: var(--qs-muted); } ins { text-dec
   font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 1; display: inline-flex; padding: 0.04em 0.06em 0.1em; }
 .verdict .l { display: inline-block; }
 /* A bead of the ink itself. It is one mass with the letters until they separate from it. */
-.verdict .vblob { position: absolute; left: 0; right: 0; top: 22%; bottom: 12%; border-radius: 999px; background: currentColor; transform: scaleX(0); transform-origin: right center; }
+/* The water: a band of ink along the baseline. It is one mass with the letters until
+   they rise out of it, and it drains away to the right as the ship crosses. */
+.verdict .vblob { position: absolute; left: 0; right: 0; top: 64%; bottom: 4%; border-radius: 999px; background: currentColor; transform: scaleX(0); transform-origin: right center; }
+.verdict-wrap { position: relative; align-self: flex-start; display: inline-flex; max-width: 100%; }
+/* The motif: a small ship that sails across on the water and leaves the word in its wake.
+   It sits outside the filtered word so it stays crisp. */
+.vship { position: absolute; left: 0; bottom: 0.2em; width: 0.62em; height: 0.62em; margin-left: -0.31em; font-size: clamp(2.75rem, 1.5rem + 7vw, 5.5rem); color: var(--qs-ink); opacity: 0; pointer-events: none; }
+.vship svg { width: 100%; height: 100%; display: block; overflow: visible; transform-origin: 50% 85%; }
 .ceremony .line { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; font-size: 1.1875rem; }
 
 /* ---------- motion ---------- */
@@ -746,15 +753,15 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
 <section id="ceremony">
   <h2>Ceremony</h2>
-  <p class="lede">The screen's single fancy moment: the headline value in the fancy voice plus one mark. The word separates out of a bead of liquid, left to right, then the marks land. Once per screen, once per visit.</p>
+  <p class="lede">The screen's single fancy moment: the headline value in the fancy voice plus one mark. Here a ship sails across on a band of ink and the word rises out of its wake, then the marks land. A ceremony can take a motif like this when the word suggests one. Once per screen, once per visit.</p>
   <div class="ceremony solid resting" id="cer">
     <p class="small muted">Release 2.4 · final check</p>
-    <p class="verdict" id="verdict" aria-hidden="true"><span class="vblob"></span></p>
+    <span class="verdict-wrap"><p class="verdict" id="verdict" aria-hidden="true"><span class="vblob"></span></p><span class="vship" id="vship" aria-hidden="true"><svg viewBox="0 0 48 44"><path fill="currentColor" d="M3 30H45L38 40H11ZM23 4V27H25V4ZM27 7L41 26H27ZM21 10L9 26H21Z"></path></svg></span></span>
     <p class="vh">Shipped</p>
     <div class="line">
-      <span><span class="swipe" style="--delay:1450ms">All 14 checks passed</span></span>
-      <span class="circled figure">14 of 14<svg viewBox="0 0 120 56" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:2.5;--delay:1950ms"></path></svg></span>
-      <span class="note a" style="--delay:2450ms">first try!</span>
+      <span><span class="swipe" style="--delay:1900ms">All 14 checks passed</span></span>
+      <span class="circled figure">14 of 14<svg viewBox="0 0 120 56" aria-hidden="true"><path class="ink-path" pathLength="1" style="stroke:var(--qs-pen-a);stroke-width:2.5;--delay:2400ms"></path></svg></span>
+      <span class="note a" style="--delay:2900ms">first try!</span>
     </div>
     <div class="row"><button class="btn" type="button" id="replay-cer" data-tour="replay">Replay</button></div>
   </div>
@@ -1469,24 +1476,35 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   'Shipped'.split('').forEach(function (ch) {
     var l = document.createElement('span'); l.className = 'l'; l.textContent = ch; verdict.appendChild(l);
   });
-  /* The word spawns from liquid: a bead of ink and the letters share one goo filter, so
-     they are a single mass at first. The bead draws back to the right and each letter
-     separates from it in turn while the blur falls to nothing. */
+  /* The word rises out of liquid, revealed by a motif that suits it. A band of ink (the
+     water) and the letters share one goo filter, so they are a single mass at first.
+     A ship sails across on the water; the water drains away ahead of it, and
+     each letter separates out as the ship passes that letter. */
+  var vship = $('#vship');
   function playCeremony() {
     if (reduced()) return;
-    var run = ++cerRun, letters = $$('.l', verdict), total = 150 + letters.length * 110 + 520, t0 = null;
+    var run = ++cerRun, letters = $$('.l', verdict), W = verdict.offsetWidth || 1, SAIL = 1500, total = SAIL + 420, t0 = null;
     redraw($('#cer'));
     verdict.style.filter = 'url(#goo-text)';
-    animate(vblob, [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: total - 200, easing: 'cubic-bezier(.45, 0, .3, 1)', fill: 'both' });
-    letters.forEach(function (l, i) {
-      animate(l, [{ opacity: 0, transform: 'translate(0.35em, 0.12em) scale(0.35)' }, { opacity: 1, offset: 0.3 }, { opacity: 1, transform: 'none' }],
-        { duration: 520, delay: 150 + i * 110, easing: tok('--qs-ease-spread'), fill: 'both' });
+    /* the water's left edge and the ship move together, at a steady speed */
+    animate(vblob, [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: SAIL, easing: 'linear', fill: 'both' });
+    animate(vship, [
+      { transform: 'translateX(' + (-0.2 * W) + 'px)', opacity: 0, offset: 0 },
+      { transform: 'translateX(0px)', opacity: 1, offset: 0.1 },
+      { transform: 'translateX(' + W + 'px)', opacity: 1, offset: 0.86 },
+      { transform: 'translateX(' + (W * 1.12) + 'px)', opacity: 0, offset: 1 }
+    ], { duration: SAIL / 0.76, delay: -SAIL / 0.76 * 0.1, easing: 'linear', fill: 'both' });
+    animate($('svg', vship), [{ transform: 'rotate(-5deg)' }, { transform: 'rotate(4deg)' }], { duration: 300, iterations: 6, direction: 'alternate', easing: 'ease-in-out' });
+    letters.forEach(function (l) {
+      var passed = SAIL * Math.min(1, (l.offsetLeft + l.offsetWidth * 0.7) / W);
+      animate(l, [{ opacity: 0, transform: 'translate(0.1em, 0.3em) scale(0.35)' }, { opacity: 1, offset: 0.3 }, { opacity: 1, transform: 'none' }],
+        { duration: 480, delay: passed, easing: tok('--qs-ease-spread'), fill: 'both' });
     });
     (function frame(now) {
       if (run !== cerRun) return;
       if (t0 === null) t0 = now;
       var k = Math.min(1, (now - t0) / total);
-      vblur.setAttribute('stdDeviation', (11 * (1 - k * k)).toFixed(2));
+      vblur.setAttribute('stdDeviation', (9 * (1 - k * k)).toFixed(2));
       if (k < 1) requestAnimationFrame(frame); else verdict.style.filter = '';
     })(performance.now());
   }

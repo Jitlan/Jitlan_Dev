@@ -45,6 +45,14 @@ move what was learned into `../docs/` and delete it from here.
 - **Type specimen page** generated from the tokens, as the first screen of any new
   project.
 
+## Ceremony motifs
+
+- **A motif library.** The kit has one: a ship for "Shipped". Worth collecting more as
+  apps need them (paw for tracked, stamp for approved, envelope for sent, key for
+  unlocked), each a single small silhouette that crosses once.
+- **Motif from the word.** Let the plugin suggest a motif when it writes a ceremony,
+  and fall back to the plain bead when nothing fits.
+
 ## Tours
 
 - **The tour as a bead.** The step is a metal bead that rolls from target to target
